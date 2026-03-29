@@ -1,0 +1,15 @@
+# dependencies
+node_modules/
+
+# env files
+.env
+.env.local
+.env.production
+
+# next.js
+.next/
+out/
+
+# misc
+.DS_Store
+*.pem
