@@ -122,7 +122,7 @@ export default function Home() {
   // Landing view
   if (!pdfData && !isLoadingPdf) {
     return (
-      <div className="h-screen flex flex-col">
+      <div className="min-h-screen flex flex-col overflow-y-auto fixed inset-0">
         <header className="flex items-center justify-between px-4 sm:px-6 py-4 border-b bg-white">
           <div className="flex items-center gap-2">
             <img src="/favicon.svg" alt="PaperLens 로고" className="w-7 h-7" />
