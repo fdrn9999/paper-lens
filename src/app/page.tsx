@@ -136,6 +136,16 @@ export default function Home() {
             <FileUploader />
           </div>
         </main>
+        <footer className="py-4 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[11px] text-gray-400">
+          <span className="whitespace-nowrap">Made by 정진호(fdrn9999)</span>
+          <a href="https://github.com/fdrn9999" target="_blank" rel="noopener noreferrer"
+             className="whitespace-nowrap hover:text-gray-600 transition-colors">GitHub</a>
+          <a href="mailto:ckato9173@gmail.com"
+             className="whitespace-nowrap hover:text-gray-600 transition-colors">ckato9173@gmail.com</a>
+          <span className="text-gray-300">|</span>
+          <a href="/privacy"
+             className="whitespace-nowrap hover:text-gray-600 transition-colors">개인정보처리방침</a>
+        </footer>
       </div>
     );
   }
