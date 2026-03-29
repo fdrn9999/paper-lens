@@ -20,7 +20,10 @@ function buildSentenceChunks(pageContents: PageTextContent[]): SentenceChunk[] {
     for (const item of page.items) {
       accText += (accText ? ' ' : '') + item.text;
       accItems.push(item);
-      if (/[.!?。！？:;]\s*$/.test(item.text) || accText.length > 200) {
+      // Split on sentence-ending punctuation, but skip common abbreviations
+      const endsWithPunct = /[.!?。！？:;]\s*$/.test(item.text);
+      const isAbbreviation = /\b(?:e\.g|i\.e|et\s*al|Fig|Eq|Dr|Mr|Mrs|vs|etc|vol|no|pp)\.\s*$/i.test(accText);
+      if ((endsWithPunct && !isAbbreviation) || accText.length > 200) {
         if (accText.trim().length >= 5) {
           chunks.push({ text: accText.trim(), page: page.page, primaryItem: accItems[0], items: accItems });
         }
@@ -33,6 +36,13 @@ function buildSentenceChunks(pageContents: PageTextContent[]): SentenceChunk[] {
     }
   }
   return chunks;
+}
+
+/** Show toast notification (lazy import to avoid circular deps) */
+function showToastSafe(text: string, type: 'success' | 'error' | 'info' = 'info') {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('paperlens-toast', { detail: { text, type } }));
+  }
 }
 
 let translateAbortController: AbortController | null = null;
@@ -371,19 +381,22 @@ const useStore = create<AppState>()(
         }
 
         if (searchMode === 'exact') {
-          const results = exactSearch(pageTextContents, query, caseSensitive);
-          const prevIndex = get().currentResultIndex;
-          const prevResults = get().searchResults;
-          const isReSearch = prevResults.length > 0 && query === get().lastSearchedQuery;
-          // On re-search (progressive extraction), preserve the user's current result index
-          const newIndex = isReSearch && prevIndex >= 0 && prevIndex < results.length
-            ? prevIndex
-            : results.length > 0 ? 0 : -1;
-          set({ searchResults: results, currentResultIndex: newIndex, lastSearchedQuery: query });
-          if (results.length > 0 && !isReSearch) {
-            set({ currentPage: results[0].page });
-            if (typeof window !== 'undefined' && window.innerWidth < 1024) set({ isSidebarOpen: true });
-          }
+          // Yield to main thread before heavy search to prevent UI freezing on large documents
+          set({ isSearching: true });
+          setTimeout(() => {
+            const results = exactSearch(pageTextContents, query, caseSensitive);
+            const prevIndex = get().currentResultIndex;
+            const prevResults = get().searchResults;
+            const isReSearch = prevResults.length > 0 && query === get().lastSearchedQuery;
+            const newIndex = isReSearch && prevIndex >= 0 && prevIndex < results.length
+              ? prevIndex
+              : results.length > 0 ? 0 : -1;
+            set({ searchResults: results, currentResultIndex: newIndex, lastSearchedQuery: query, isSearching: false });
+            if (results.length > 0 && !isReSearch) {
+              set({ currentPage: results[0].page });
+              if (typeof window !== 'undefined' && window.innerWidth < 1024) set({ isSidebarOpen: true });
+            }
+          }, 0);
         } else if (searchMode === 'semantic') {
           // Block semantic search while still extracting text
           if (isExtracting) {
@@ -469,6 +482,7 @@ const useStore = create<AppState>()(
                         scheduleQuotaReset(get, set, 'embed');
                         const errData = await res.json().catch(() => ({}));
                         set({ isEmbedding: false, embeddingProgress: { code: 'RATE_LIMITED', detail: errData.error }, searchResults: [], currentResultIndex: -1 });
+                        showToastSafe(errData.error || '일일 AI 검색 사용 한도를 초과했습니다.', 'error');
                         return;
                       }
                       if (!res.ok) {
@@ -531,6 +545,7 @@ const useStore = create<AppState>()(
                 set({ embedQuota: eq ? { ...eq, remaining: 0 } : { remaining: 0, limit: 20 } });
                 scheduleQuotaReset(get, set, 'embed');
                 set({ embeddingProgress: { code: 'RATE_LIMITED' }, searchResults: [], currentResultIndex: -1 });
+                showToastSafe('일일 AI 검색 사용 한도를 초과했습니다.', 'error');
                 return;
               }
               if (!kwRes.ok) { set({ embeddingProgress: { code: 'API_ERROR', detail: String(kwRes.status) }, searchResults: [], currentResultIndex: -1 }); return; }
@@ -743,6 +758,7 @@ const useStore = create<AppState>()(
             scheduleQuotaReset(get, set, 'translate');
             const data = await res.json().catch(() => ({}));
             set({ translationResult: '', isTranslationError: true, translationErrorCode: 'RATE_LIMITED', translationErrorDetail: data.error || '' });
+            showToastSafe(data.error || '일일 번역 사용 한도를 초과했습니다.', 'error');
             return;
           }
           if (!res.ok) { set({ translationResult: '', isTranslationError: true, translationErrorCode: 'SERVER_ERROR', translationErrorDetail: String(res.status) }); return; }
