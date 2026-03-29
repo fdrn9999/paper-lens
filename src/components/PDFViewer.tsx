@@ -72,8 +72,7 @@ export default memo(function PDFViewer() {
         setTotalPages(doc.numPages);
         setIsLoadingPdf(false);
       } catch {
-        if (!cancelled) setPdfLoadError(true);
-        setIsLoadingPdf(false);
+        if (!cancelled) { setPdfLoadError(true); setIsLoadingPdf(false); }
       }
     })();
     return () => {
@@ -316,11 +315,12 @@ export default memo(function PDFViewer() {
         textLayerDivRef.current = textLayerDiv;
         pageDataRef.current = { viewport, textItems: strItems, wrapper };
 
+        if (taskId !== renderTaskRef.current) return;
         const oldChildren = Array.from(container.children);
         container.appendChild(wrapper);
         for (const child of oldChildren) container.removeChild(child);
 
-        if (taskId === renderTaskRef.current) setPageReady(true);
+        setPageReady(true);
       } catch (err) {
         if (process.env.NODE_ENV !== 'production') console.error('PDF page render error:', err);
       } finally {
@@ -400,7 +400,7 @@ export default memo(function PDFViewer() {
         }
 
         const div = document.createElement('div');
-        div.className = 'highlight-mark';
+        div.className = result.semantic ? 'highlight-mark semantic' : 'highlight-mark';
         div.dataset.resultId = result.id;
         const vInset = Math.max(wordHeight * 0.12, 1);
         div.style.cssText = `left:${wordLeft}px;top:${wordTop + vInset}px;width:${Math.max(wordWidth, 8)}px;height:${Math.max(wordHeight - vInset * 2, 4)}px;`;
@@ -427,8 +427,6 @@ export default memo(function PDFViewer() {
         if (!scrolled) {
           scrolled = true;
           requestAnimationFrame(() => {
-            const scrollParent = el.closest('.overflow-auto');
-            if (scrollParent) scrollParent.scrollTop = scrollParent.scrollTop;
             el.scrollIntoView({ behavior: 'smooth', block: 'center' });
           });
         }
@@ -523,7 +521,7 @@ export default memo(function PDFViewer() {
         }
 
         const div = document.createElement('div');
-        div.className = 'highlight-mark';
+        div.className = result.semantic ? 'highlight-mark semantic' : 'highlight-mark';
         div.dataset.resultId = result.id;
         const vInset = Math.max(wordHeight * 0.12, 1);
         div.style.cssText = `left:${wordLeft}px;top:${wordTop + vInset}px;width:${Math.max(wordWidth, 8)}px;height:${Math.max(wordHeight - vInset * 2, 4)}px;`;

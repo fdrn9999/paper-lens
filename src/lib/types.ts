@@ -31,6 +31,8 @@ export interface SearchResult {
   spans?: HighlightSpan[];
   /** True for semantic search results (affects rendering style) */
   semantic?: boolean;
+  /** Relevance score 0-1 for semantic results */
+  relevanceScore?: number;
 }
 
 /**

@@ -233,8 +233,10 @@ function cjkSearch(
     let pos = 0;
     while ((pos = haystack.indexOf(compareKw, pos)) !== -1) {
       // Map stripped positions back to original concat positions
+      const endIdx = pos + normalizedKw.length - 1;
+      if (endIdx >= toOriginal.length) { pos += 1; continue; }
       const origStart = toOriginal[pos];
-      const origEnd = toOriginal[pos + normalizedKw.length - 1] + 1;
+      const origEnd = toOriginal[endIdx] + 1;
       const hit = findItemAt(offsets, origStart);
       if (hit) {
         const broader = buildBroaderContext(offsets, origStart, origEnd);
@@ -357,8 +359,10 @@ export function exactSearch(
 
       let pos = 0;
       while ((pos = haystack.indexOf(compareKw, pos)) !== -1) {
+        const endIdx = pos + compareKw.length - 1;
+        if (endIdx >= toOriginal.length) { pos += 1; continue; }
         const origStart = toOriginal[pos];
-        const origEnd = toOriginal[pos + compareKw.length - 1] + 1;
+        const origEnd = toOriginal[endIdx] + 1;
         const hit = findItemAt(offsets, origStart);
         if (hit) {
           const localStart = Math.max(0, origStart - hit.start);

@@ -64,8 +64,12 @@ export default memo(function SearchBar() {
       }, 500);
     } else {
       setIsDebouncing(false);
+      if (!value.trim()) {
+        clearSearch();
+        lastSearchedRef.current = '';
+      }
     }
-  }, [searchMode, setSearchQuery, search]);
+  }, [searchMode, setSearchQuery, search, clearSearch]);
 
   const handleSearch = useCallback(
     (e: React.FormEvent) => {
@@ -159,7 +163,7 @@ export default memo(function SearchBar() {
         {/* Search mode toggle */}
         <div data-guide="search-mode" className="flex rounded-lg border border-gray-300 overflow-hidden text-xs shrink-0">
           <button
-            onClick={() => setSearchMode('exact')}
+            onClick={() => { if (debounceRef.current) { clearTimeout(debounceRef.current); debounceRef.current = null; setIsDebouncing(false); } setSearchMode('exact'); }}
             className={`px-2.5 py-2 min-h-[44px] sm:min-h-0 transition-colors flex items-center gap-1 ${
               searchMode === 'exact'
                 ? 'bg-blue-600 text-white'
@@ -175,7 +179,7 @@ export default memo(function SearchBar() {
             정확
           </button>
           <button
-            onClick={() => setSearchMode('semantic')}
+            onClick={() => { if (debounceRef.current) { clearTimeout(debounceRef.current); debounceRef.current = null; setIsDebouncing(false); } setSearchMode('semantic'); }}
             disabled={isExtracting}
             className={`px-2.5 py-2 min-h-[44px] sm:min-h-0 transition-colors flex items-center gap-1 ${
               searchMode === 'semantic'

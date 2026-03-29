@@ -8,33 +8,164 @@ interface SentenceChunk {
   page: number;
   primaryItem: ExtractedTextItem;
   items: ExtractedTextItem[];
+  isOverlap?: boolean;
 }
 
-/** Merge consecutive PDF.js text items into sentence-level chunks for semantic embedding. */
+const CHUNK_MIN = 300;
+const CHUNK_MAX = 500;
+const CHUNK_OVERLAP = 50;
+
+const ABBREVIATION_RE = /\b(?:e\.g|i\.e|et\s*al|Fig|Eq|Dr|Mr|Mrs|Ms|Prof|vs|etc|vol|no|pp|approx|dept|est|inc|Jr|Sr|St|Ref|Ch|Sec)\.\s*$/i;
+const SENTENCE_END_RE = /[.!?。！？]\s*$/;
+const SECTION_HEADER_RE = /^(?:\d+\.?\s+[A-Z]|[A-Z][A-Z\s]{4,}$|Abstract|Introduction|Conclusion|References|Discussion|Methods|Results|Background|Related Work|Acknowledgment)/;
+
+/** Detect if an item looks like a section header based on text pattern and font size. */
+function isSectionHeader(item: ExtractedTextItem, avgHeight: number): boolean {
+  const trimmed = item.text.trim();
+  if (trimmed.length < 3 || trimmed.length > 120) return false;
+  if (SECTION_HEADER_RE.test(trimmed) && item.height > avgHeight * 1.1) return true;
+  if (item.height > avgHeight * 1.4 && trimmed.length < 80) return true;
+  return false;
+}
+
+/** Merge consecutive PDF.js text items into paragraph-level chunks with sliding window overlap. */
 function buildSentenceChunks(pageContents: PageTextContent[]): SentenceChunk[] {
-  const chunks: SentenceChunk[] = [];
+  // Phase 1: Build raw paragraph segments respecting section/paragraph boundaries
+  const segments: { text: string; page: number; items: ExtractedTextItem[] }[] = [];
+
   for (const page of pageContents) {
     if (page.items.length === 0) continue;
+
+    // Compute average item height for header detection
+    let totalHeight = 0;
+    for (const item of page.items) totalHeight += item.height;
+    const avgHeight = totalHeight / page.items.length || 12;
+
     let accText = '';
     let accItems: ExtractedTextItem[] = [];
+
+    const flushSegment = () => {
+      const trimmed = accText.trim();
+      if (trimmed.length >= 5) {
+        segments.push({ text: trimmed, page: page.page, items: [...accItems] });
+      }
+      accText = '';
+      accItems = [];
+    };
+
     for (const item of page.items) {
+      // Section header starts a new segment
+      if (isSectionHeader(item, avgHeight) && accText.length > 0) {
+        flushSegment();
+      }
+
+      // Detect paragraph breaks: large vertical gap between items
+      if (accItems.length > 0) {
+        const prevItem = accItems[accItems.length - 1];
+        const prevY = prevItem.transform[5];
+        const curY = item.transform[5];
+        const lineGap = Math.abs(curY - prevY);
+        // A gap > 1.8x the average height likely indicates a paragraph break
+        if (lineGap > avgHeight * 1.8 && accText.length > 0) {
+          flushSegment();
+        }
+      }
+
       accText += (accText ? ' ' : '') + item.text;
       accItems.push(item);
-      // Split on sentence-ending punctuation, but skip common abbreviations
-      const endsWithPunct = /[.!?。！？:;]\s*$/.test(item.text);
-      const isAbbreviation = /\b(?:e\.g|i\.e|et\s*al|Fig|Eq|Dr|Mr|Mrs|vs|etc|vol|no|pp)\.\s*$/i.test(accText);
-      if ((endsWithPunct && !isAbbreviation) || accText.length > 200) {
-        if (accText.trim().length >= 5) {
-          chunks.push({ text: accText.trim(), page: page.page, primaryItem: accItems[0], items: accItems });
+
+      // Sentence boundary check for segments hitting max size
+      const endsWithPunct = SENTENCE_END_RE.test(item.text);
+      const isAbbr = ABBREVIATION_RE.test(accText);
+
+      if (accText.length >= CHUNK_MAX) {
+        // Try to split at last sentence boundary within the accumulated text
+        if (endsWithPunct && !isAbbr) {
+          flushSegment();
+        } else {
+          // Force split at max — find last sentence end within accumulated text
+          const lastSentEnd = accText.search(/[.!?。！？][^.!?。！？]*$/);
+          if (lastSentEnd > CHUNK_MIN) {
+            const splitPos = lastSentEnd + 1;
+            const splitText = accText.slice(0, splitPos).trim();
+            // Find the item boundary closest to splitPos
+            let charCount = 0;
+            let splitItemIdx = 0;
+            for (let k = 0; k < accItems.length; k++) {
+              if (k > 0) charCount += 1; // space separator between items
+              charCount += accItems[k].text.length;
+              if (charCount >= splitPos) { splitItemIdx = k + 1; break; }
+            }
+            if (splitItemIdx === 0) splitItemIdx = accItems.length;
+            if (splitText.length >= 5) {
+              segments.push({ text: splitText, page: page.page, items: accItems.slice(0, splitItemIdx) });
+            }
+            accText = accText.slice(splitPos).trim();
+            accItems = accItems.slice(splitItemIdx);
+          } else {
+            flushSegment();
+          }
         }
-        accText = '';
-        accItems = [];
+      } else if (endsWithPunct && !isAbbr && accText.length >= CHUNK_MIN) {
+        flushSegment();
       }
     }
-    if (accText.trim().length >= 5) {
-      chunks.push({ text: accText.trim(), page: page.page, primaryItem: accItems[0], items: accItems });
+
+    flushSegment();
+  }
+
+  // Phase 2: Apply sliding window overlap to produce final chunks
+  const chunks: SentenceChunk[] = [];
+  for (let i = 0; i < segments.length; i++) {
+    const seg = segments[i];
+    chunks.push({
+      text: seg.text,
+      page: seg.page,
+      primaryItem: seg.items[0],
+      items: seg.items,
+    });
+
+    // Create overlap chunk between consecutive segments on the same page
+    if (i + 1 < segments.length && segments[i + 1].page === seg.page) {
+      const next = segments[i + 1];
+
+      // Collect tail items by character count to match text slice
+      const tailTarget = CHUNK_OVERLAP;
+      let tailCharCount = 0;
+      let tailStartIdx = seg.items.length;
+      for (let k = seg.items.length - 1; k >= 0; k--) {
+        tailCharCount += seg.items[k].text.length;
+        tailStartIdx = k;
+        if (tailCharCount >= tailTarget) break;
+      }
+      const tailItems = seg.items.slice(tailStartIdx);
+      const tailText = tailItems.map((it) => it.text).join(' ');
+
+      // Collect head items by character count
+      let headCharCount = 0;
+      let headEndIdx = 0;
+      for (let k = 0; k < next.items.length; k++) {
+        headCharCount += next.items[k].text.length;
+        headEndIdx = k + 1;
+        if (headCharCount >= CHUNK_OVERLAP) break;
+      }
+      const headItems = next.items.slice(0, headEndIdx);
+      const headText = headItems.map((it) => it.text).join(' ');
+
+      const overlapText = (tailText + ' ' + headText).trim();
+      if (overlapText.length >= 20) {
+        const overlapItems = [...tailItems, ...headItems];
+        chunks.push({
+          text: overlapText,
+          page: seg.page,
+          primaryItem: tailItems[0],
+          items: overlapItems,
+          isOverlap: true,
+        });
+      }
     }
   }
+
   return chunks;
 }
 
@@ -79,9 +210,101 @@ function scheduleQuotaReset(get: () => AppState, set: (s: Partial<AppState>) => 
 const API_TIMEOUT_MS = 30000;
 
 /** Semantic search similarity thresholds */
-const SEMANTIC_THRESHOLD = 0.65;
-const SEMANTIC_MIN_SCORE = 0.5;
-const SEMANTIC_TOP_K = 10;
+const SEMANTIC_MIN_SCORE = 0.4;
+const SEMANTIC_TOP_K = 15;
+const MMR_LAMBDA = 0.7;      // balance relevance vs diversity in MMR
+const RRF_K = 60;            // constant for Reciprocal Rank Fusion
+
+/** Compute adaptive threshold from score distribution (mean + 0.5 * stddev). */
+function computeAdaptiveThreshold(scores: number[]): number {
+  if (scores.length === 0) return 0.5;
+  const mean = scores.reduce((a, b) => a + b, 0) / scores.length;
+  const variance = scores.reduce((a, b) => a + (b - mean) ** 2, 0) / scores.length;
+  const stddev = Math.sqrt(variance);
+  // Threshold = mean + 0.5*stddev, clamped to [0.4, 0.85]
+  return Math.max(0.4, Math.min(0.85, mean + 0.5 * stddev));
+}
+
+/** MMR re-ranking: select results that are both relevant and diverse. */
+function mmrRerank(
+  candidates: { chunk: SentenceChunk; score: number; embIdx: number }[],
+  embeddings: number[][],
+  norms: number[],
+  maxResults: number,
+): { chunk: SentenceChunk; score: number; embIdx: number }[] {
+  if (candidates.length <= 1) return candidates;
+  const selected: typeof candidates = [];
+  const remaining = [...candidates];
+
+  // Always pick the top-scoring candidate first
+  selected.push(remaining.shift()!);
+
+  while (selected.length < maxResults && remaining.length > 0) {
+    let bestIdx = 0;
+    let bestMmr = -Infinity;
+    for (let i = 0; i < remaining.length; i++) {
+      const rel = remaining[i].score;
+      // Max similarity to any already-selected result
+      let maxSim = 0;
+      for (const sel of selected) {
+        const eA = embeddings[remaining[i].embIdx];
+        const eB = embeddings[sel.embIdx];
+        const nA = norms[remaining[i].embIdx];
+        const nB = norms[sel.embIdx];
+        if (!eA || !eB) continue;
+        let dot = 0;
+        for (let j = 0; j < eA.length; j++) dot += eA[j] * eB[j];
+        const sim = (nA * nB) === 0 ? 0 : dot / (nA * nB);
+        if (sim > maxSim) maxSim = sim;
+      }
+      const mmr = MMR_LAMBDA * rel - (1 - MMR_LAMBDA) * maxSim;
+      if (mmr > bestMmr) { bestMmr = mmr; bestIdx = i; }
+    }
+    selected.push(remaining.splice(bestIdx, 1)[0]);
+  }
+  return selected;
+}
+
+/** Reciprocal Rank Fusion: merge two ranked result lists by page+itemIndex key. */
+function rrfMerge(
+  semanticResults: SearchResult[],
+  exactResults: SearchResult[],
+): SearchResult[] {
+  const scoreMap = new Map<string, { result: SearchResult; score: number }>();
+
+  for (let i = 0; i < semanticResults.length; i++) {
+    const r = semanticResults[i];
+    const key = `${r.page}-${r.itemIndex}`;
+    const rrfScore = 1 / (RRF_K + i + 1);
+    const existing = scoreMap.get(key);
+    if (existing) {
+      existing.score += rrfScore;
+    } else {
+      scoreMap.set(key, { result: r, score: rrfScore });
+    }
+  }
+
+  for (let i = 0; i < exactResults.length; i++) {
+    const r = exactResults[i];
+    const key = `${r.page}-${r.itemIndex}`;
+    const rrfScore = 1 / (RRF_K + i + 1);
+    const existing = scoreMap.get(key);
+    if (existing) {
+      existing.score += rrfScore;
+      // Both semantic and exact matched — keep wider spans (semantic) but add exact charStart/charEnd
+      if (existing.result.semantic) {
+        existing.result = { ...existing.result, charStart: r.charStart, charEnd: r.charEnd };
+      }
+    } else {
+      // exact-only result — keep original semantic flag (false)
+      scoreMap.set(key, { result: r, score: rrfScore });
+    }
+  }
+
+  return [...scoreMap.values()]
+    .sort((a, b) => b.score - a.score)
+    .map((v) => v.result);
+}
 
 /** Return UTC date string (YYYY-MM-DD) to match server-side todayUTC() in rateLimit.ts. */
 function getUTCDateString(): string {
@@ -342,6 +565,7 @@ const useStore = create<AppState>()(
         const { searchMode: prevMode, searchResults, currentResultIndex, lastSearchedQuery } = get();
         if (mode === prevMode) return;
         if (semanticAbortController) { semanticAbortController.abort(); semanticAbortController = null; }
+        if (progressiveSearchTimer) { clearTimeout(progressiveSearchTimer); progressiveSearchTimer = null; }
         // Cache current mode's results (keyed by the actually-searched query, not live input)
         const cacheKey = prevMode === 'exact' ? 'cachedExactResults' : 'cachedSemanticResults';
         const restoreKey = mode === 'exact' ? 'cachedExactResults' : 'cachedSemanticResults';
@@ -574,27 +798,42 @@ const useStore = create<AppState>()(
                   for (let j = 0; j < emb.length; j++) dot += kwEmb[j] * emb[j];
                   const embNorm = cachedNorms ? cachedNorms[i] : 1;
                   const denom = kwNorm * embNorm;
-                  return { chunk, score: denom === 0 ? 0 : dot / denom };
+                  return { chunk, score: denom === 0 ? 0 : dot / denom, embIdx: i };
                 })
                 .sort((a, b) => b.score - a.score);
 
-              // Adaptive threshold: use the static threshold, but if the top score
-              // is well above it, tighten to reduce noise (top score * 0.75)
-              const topScore = allScored.length > 0 ? allScored[0].score : 0;
-              const adaptiveThreshold = Math.max(SEMANTIC_THRESHOLD, topScore * 0.75);
+              // Adaptive threshold based on score distribution
+              const allScores = allScored.map((s) => s.score);
+              const adaptiveThreshold = computeAdaptiveThreshold(allScores);
 
-              let scored = allScored.filter((s) => s.score > adaptiveThreshold);
+              let scored = allScored.filter((s) => s.score >= adaptiveThreshold);
               let isFallback = false;
               if (scored.length === 0) {
                 scored = allScored.filter((s) => s.score > SEMANTIC_MIN_SCORE).slice(0, SEMANTIC_TOP_K);
                 isFallback = scored.length > 0;
               }
 
-              const results: SearchResult[] = scored.map((s, idx) => {
+              // Dedup: when a non-overlap chunk and its overlap both match, drop the overlap
+              if (scored.length > 1) {
+                const nonOverlapKeys = new Set(
+                  scored.filter((s) => !s.chunk.isOverlap)
+                    .map((s) => `${s.chunk.page}-${s.chunk.primaryItem.itemIndex}`)
+                );
+                scored = scored.filter((s) => {
+                  if (!s.chunk.isOverlap) return true;
+                  const key = `${s.chunk.page}-${s.chunk.primaryItem.itemIndex}`;
+                  return !nonOverlapKeys.has(key);
+                });
+              }
+
+              // MMR re-ranking for diversity (reduce redundant chunks)
+              if (scored.length > 1 && embeddings && cachedNorms) {
+                scored = mmrRerank(scored, embeddings, cachedNorms, SEMANTIC_TOP_K);
+              }
+
+              const semanticResults: SearchResult[] = scored.map((s, idx) => {
                 const primaryItem = s.chunk.primaryItem;
 
-                // Generate highlight spans covering ALL items in the chunk
-                // so the entire matched sentence is highlighted, not just one fragment
                 const spans: HighlightSpan[] = s.chunk.items.map((chunkItem) => ({
                   itemIndex: chunkItem.itemIndex,
                   charStart: 0,
@@ -611,8 +850,15 @@ const useStore = create<AppState>()(
                   charEnd: primaryItem.text.length,
                   spans,
                   semantic: true,
+                  relevanceScore: s.score,
                 };
               });
+
+              // Hybrid search: run exact search and merge via RRF
+              const exactResults = exactSearch(pageTextContents, query, false);
+              const results = exactResults.length > 0
+                ? rrfMerge(semanticResults, exactResults).slice(0, SEMANTIC_TOP_K)
+                : semanticResults;
 
               if (signal.aborted) return;
               set({

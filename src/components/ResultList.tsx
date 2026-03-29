@@ -70,15 +70,48 @@ function HighlightedContext({ result, isCurrent }: { result: SearchResult; isCur
   );
 }
 
+/** Highlight query keywords within semantic result context. */
+function SemanticContext({ context, query, isCurrent }: { context: string; query: string; isCurrent: boolean }) {
+  const words = query.trim().split(/\s+/).filter((w) => w.length >= 2);
+  if (words.length === 0) {
+    return <span>{context.slice(0, 120)}{context.length > 120 ? '...' : ''}</span>;
+  }
+  const splitPattern = new RegExp(`(${words.map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`, 'gi');
+  const matchPattern = new RegExp(`^(?:${words.map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})$`, 'i');
+  const parts = context.slice(0, 150).split(splitPattern);
+  return (
+    <span>
+      {parts.map((part, i) =>
+        matchPattern.test(part)
+          ? <span key={i} className={`font-semibold ${isCurrent ? 'text-orange-600' : 'text-blue-600'}`}>{part}</span>
+          : <span key={i}>{part}</span>
+      )}
+      {context.length > 150 ? '...' : ''}
+    </span>
+  );
+}
+
+function RelevanceBadge({ score }: { score: number }) {
+  const pct = Math.round(score * 100);
+  const color = pct >= 80 ? 'text-green-600 bg-green-50' : pct >= 60 ? 'text-blue-600 bg-blue-50' : 'text-gray-500 bg-gray-50';
+  return (
+    <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full shrink-0 ${color}`}>
+      {pct}%
+    </span>
+  );
+}
+
 const ResultItem = memo(function ResultItem({
   result,
   isCurrent,
   globalIndex,
+  searchQuery,
   onGoToResult,
 }: {
   result: SearchResult;
   isCurrent: boolean;
   globalIndex: number;
+  searchQuery: string;
   onGoToResult: (idx: number) => void;
 }) {
   const handleClick = useCallback(() => onGoToResult(globalIndex), [onGoToResult, globalIndex]);
@@ -97,9 +130,12 @@ const ResultItem = memo(function ResultItem({
         }`}
     >
       {semantic ? (
-        <p className="text-gray-700 leading-relaxed line-clamp-2">
-          {result.context}
-        </p>
+        <div className="flex items-start gap-1.5">
+          <p className="text-gray-700 leading-relaxed line-clamp-2 flex-1 min-w-0">
+            <SemanticContext context={result.context} query={searchQuery} isCurrent={isCurrent} />
+          </p>
+          {result.relevanceScore != null && <RelevanceBadge score={result.relevanceScore} />}
+        </div>
       ) : (
         <HighlightedContext result={result} isCurrent={isCurrent} />
       )}
@@ -111,6 +147,7 @@ export default memo(function ResultList() {
   const searchResults = useStore((s) => s.searchResults);
   const currentResultIndex = useStore((s) => s.currentResultIndex);
   const searchQuery = useStore((s) => s.searchQuery);
+  const searchMode = useStore((s) => s.searchMode);
   const goToResult = useStore((s) => s.goToResult);
   const nextResult = useStore((s) => s.nextResult);
   const prevResult = useStore((s) => s.prevResult);
@@ -126,6 +163,14 @@ export default memo(function ResultList() {
   const scrollRafRef = useRef(0);
   const [scrollTop, setScrollTop] = useState(0);
   const [viewHeight, setViewHeight] = useState(600);
+
+  // Cleanup timers on unmount
+  useEffect(() => {
+    return () => {
+      clearTimeout(userScrollTimerRef.current);
+      cancelAnimationFrame(scrollRafRef.current);
+    };
+  }, []);
 
   // Track container height changes (resize, orientation change)
   useEffect(() => {
@@ -239,11 +284,26 @@ export default memo(function ResultList() {
   if (!pdfData) return null;
 
   if (isEmbedding || (embeddingProgress && searchResults.length === 0)) {
+    const progressPct = embeddingProgress?.code === 'ANALYZING' && embeddingProgress.total
+      ? Math.round((embeddingProgress.current ?? 0) / embeddingProgress.total * 100)
+      : null;
     return (
       <div className="p-6 flex flex-col items-center gap-3 text-center">
         <div className="animate-spin h-8 w-8 border-4 border-purple-500 border-t-transparent rounded-full" />
         <p className="text-sm text-purple-600 font-medium">{getEmbeddingMessage(embeddingProgress) || '처리 중...'}</p>
-        <p className="text-xs text-gray-400">AI가 문서를 분석하고 있습니다</p>
+        {progressPct !== null && (
+          <div className="w-full max-w-[200px] h-1.5 bg-gray-200 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-purple-500 rounded-full transition-all duration-300"
+              style={{ width: `${progressPct}%` }}
+            />
+          </div>
+        )}
+        <p className="text-xs text-gray-400">
+          {embeddingProgress?.code === 'ANALYZING' ? '문서 임베딩 생성 중...' :
+           embeddingProgress?.code === 'COMPARING_KEYWORD' ? '검색어와 비교 중...' :
+           'AI가 문서를 분석하고 있습니다'}
+        </p>
       </div>
     );
   }
@@ -257,6 +317,7 @@ export default memo(function ResultList() {
   }
 
   if (searchResults.length === 0 && searchQuery) {
+    const searchModeVal = searchMode;
     return (
       <div className="p-4 text-center text-sm">
         {isExtracting ? (
@@ -267,7 +328,22 @@ export default memo(function ResultList() {
             </p>
           </div>
         ) : (
-          <p className="text-gray-500">&quot;{searchQuery}&quot;에 대한 검색 결과가 없습니다.</p>
+          <div className="text-gray-500">
+            <p>&quot;{searchQuery}&quot;에 대한 검색 결과가 없습니다.</p>
+            <div className="mt-2 text-xs text-gray-400 space-y-1">
+              {searchModeVal === 'exact' ? (
+                <>
+                  <p>AI 검색으로 전환하면 의미가 유사한 문장도 찾을 수 있습니다.</p>
+                  <p>대소문자 구분이 켜져 있다면 끄고 시도해 보세요.</p>
+                </>
+              ) : (
+                <>
+                  <p>다른 표현이나 키워드로 검색해 보세요.</p>
+                  <p>정확 검색으로 전환하면 특정 단어를 직접 찾을 수 있습니다.</p>
+                </>
+              )}
+            </div>
+          </div>
         )}
       </div>
     );
@@ -330,6 +406,7 @@ export default memo(function ResultList() {
                 result={item.result}
                 isCurrent={item.globalIndex === currentResultIndex}
                 globalIndex={item.globalIndex}
+                searchQuery={isSemantic(item.result) ? searchQuery : ''}
                 onGoToResult={goToResult}
               />
             </div>
