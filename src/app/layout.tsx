@@ -21,7 +21,7 @@ export const metadata: Metadata = {
     description: '논문을 빠르게 이해하고 원하는 정보를 정확히 찾게 해주는 AI 기반 PDF 탐색 도구',
   },
   robots: { index: true, follow: true },
-  metadataBase: new URL('https://paperlens.app'),
+  metadataBase: new URL('https://paperlens.site'),
 };
 
 export default function RootLayout({

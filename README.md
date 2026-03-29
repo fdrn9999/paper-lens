@@ -20,6 +20,10 @@
   <img src="https://img.shields.io/badge/License-MIT-green" alt="License" />
 </p>
 
+<p align="center">
+  <a href="https://paperlens.site"><strong>paperlens.site 바로가기</strong></a>
+</p>
+
 ---
 
 ## 주요 기능
