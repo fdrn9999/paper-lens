@@ -83,10 +83,9 @@ const SEMANTIC_THRESHOLD = 0.65;
 const SEMANTIC_MIN_SCORE = 0.5;
 const SEMANTIC_TOP_K = 10;
 
-/** Return local date string (YYYY-MM-DD) to avoid UTC/local timezone mismatch near midnight. */
-function getLocalDateString(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+/** Return UTC date string (YYYY-MM-DD) to match server-side todayUTC() in rateLimit.ts. */
+function getUTCDateString(): string {
+  return new Date().toISOString().slice(0, 10);
 }
 
 /** Wrap fetch with a per-request timeout. Throws 'TIMEOUT' error on timeout. */
@@ -694,7 +693,7 @@ const useStore = create<AppState>()(
       },
 
       incrementDailyUsage: (type) => {
-        const today = getLocalDateString();
+        const today = getUTCDateString();
         const usage = get().dailyUsage;
         if (usage.date !== today) {
           set({ dailyUsage: { translate: type === 'translate' ? 1 : 0, embed: type === 'embed' ? 1 : 0, date: today } });
@@ -704,7 +703,7 @@ const useStore = create<AppState>()(
       },
 
       getDailyUsage: (type) => {
-        const today = getLocalDateString();
+        const today = getUTCDateString();
         const usage = get().dailyUsage;
         return usage.date === today ? usage[type] : 0;
       },

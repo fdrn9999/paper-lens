@@ -197,10 +197,15 @@ export default memo(function SearchBar() {
           </button>
         </div>
 
-        {/* Inline extraction progress indicator (visible on mobile, hidden on md+) */}
+        {/* Inline extraction progress indicator */}
         {isExtracting && (
-          <span className="text-[10px] text-amber-500 whitespace-nowrap md:hidden flex items-center">
-            {extractedPageCount}/{totalPages}
+          <span className={`text-[10px] whitespace-nowrap flex items-center gap-1 ${searchMode === 'semantic' ? 'text-purple-500' : 'text-amber-500 md:hidden'}`}>
+            {searchMode === 'semantic' && (
+              <span className="animate-spin inline-block w-3 h-3 border-[1.5px] border-purple-400 border-t-transparent rounded-full" />
+            )}
+            {searchMode === 'semantic'
+              ? `문서 분석 중 (${Math.round((extractedPageCount / Math.max(totalPages, 1)) * 100)}%)`
+              : `${extractedPageCount}/${totalPages}`}
           </span>
         )}
 
