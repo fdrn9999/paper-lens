@@ -8,17 +8,18 @@ export const metadata: Metadata = {
 
 export default function PrivacyPage() {
   return (
-    <div className="min-h-screen bg-white overflow-y-auto fixed inset-0">
-      <header className="border-b">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 py-4 flex items-center gap-3">
-          <Link href="/" className="flex items-center gap-2 hover:opacity-70 transition-opacity">
-            <img src="/favicon.svg" alt="PaperLens 로고" className="w-6 h-6" />
-            <span className="text-lg font-bold text-gray-800">PaperLens</span>
-          </Link>
-        </div>
+    <div className="min-h-screen bg-white">
+      <a href="#privacy-content" className="skip-to-content">본문으로 건너뛰기</a>
+      <header className="flex items-center justify-between px-4 sm:px-6 py-4 border-b bg-white">
+        <Link href="/" className="flex items-center gap-2 hover:opacity-70 transition-opacity">
+          <img src="/favicon.svg" alt="PaperLens 로고" className="w-7 h-7" />
+          <h1 className="text-xl font-bold text-gray-800">PaperLens</h1>
+        </Link>
+        <p className="text-sm text-gray-500 hidden sm:block">AI 기반 논문 탐색 도구</p>
+        <Link href="/" className="text-sm text-blue-600 hover:text-blue-700 transition-colors sm:hidden">홈으로</Link>
       </header>
 
-      <main className="max-w-3xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
+      <main id="privacy-content" className="max-w-3xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
         <h1 className="text-2xl font-bold text-gray-900 mb-2">개인정보처리방침</h1>
         <p className="text-sm text-gray-400 mb-8">시행일: 2025년 1월 1일 | 최종 수정: 2026년 3월 29일</p>
 

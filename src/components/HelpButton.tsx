@@ -37,7 +37,7 @@ export default function HelpButton() {
     <div className="relative shrink-0" ref={panelRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`w-8 h-8 flex items-center justify-center rounded-full border text-sm font-bold transition-colors
+        className={`w-11 h-11 sm:w-8 sm:h-8 flex items-center justify-center rounded-full border text-sm font-bold transition-colors
           ${isOpen
             ? 'bg-blue-600 text-white border-blue-600'
             : 'bg-white text-gray-500 border-gray-300 hover:bg-gray-50 hover:text-gray-700'}`}

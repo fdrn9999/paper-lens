@@ -170,6 +170,7 @@ function cjkSearch(
   const results: SearchResult[] = [];
   // Strip all non-letter/non-number chars so "인공지능 (AI)" → "인공지능AI"
   const normalizedKw = keyword.replace(/[^\p{L}\p{N}]/gu, '');
+  if (normalizedKw.length === 0) return [];
   const compareKw = caseSensitive ? normalizedKw : normalizedKw.toLowerCase();
 
   for (const page of pageContents) {

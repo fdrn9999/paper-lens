@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import CookieConsent from '@/components/CookieConsent';
 
 export const metadata: Metadata = {
   title: 'PaperLens - AI 기반 논문 탐색 도구',
@@ -14,6 +15,11 @@ export const metadata: Metadata = {
     siteName: 'PaperLens',
     locale: 'ko_KR',
   },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'PaperLens - AI 기반 논문 탐색 도구',
+    description: '논문을 빠르게 이해하고 원하는 정보를 정확히 찾게 해주는 AI 기반 PDF 탐색 도구',
+  },
   robots: { index: true, follow: true },
   metadataBase: new URL('https://paperlens.app'),
 };
@@ -27,6 +33,7 @@ export default function RootLayout({
     <html lang="ko">
       <body className="antialiased">
         {children}
+        <CookieConsent />
       </body>
     </html>
   );

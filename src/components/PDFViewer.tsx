@@ -880,8 +880,8 @@ export default memo(function PDFViewer() {
         onMouseDown={(e) => e.preventDefault()}
         onClick={() => { translate(selectedText); setFloatingBtn(null); window.getSelection()?.removeAllRanges(); }}
         aria-label="선택한 텍스트 번역"
-        className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg shadow-lg
-                   hover:bg-blue-700 transition-colors flex items-center gap-1.5"
+        className="px-3.5 py-2.5 bg-blue-600 text-white text-sm rounded-lg shadow-lg
+                   hover:bg-blue-700 active:bg-blue-800 transition-colors flex items-center gap-1.5"
       >
         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />

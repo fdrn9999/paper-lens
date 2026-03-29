@@ -4,6 +4,7 @@ import { memo, useCallback, useState, useEffect } from 'react';
 import useStore from '@/store/useStore';
 import { getTranslationErrorMessage } from '@/lib/messages';
 import type { TranslationErrorCode } from '@/lib/types';
+import QuotaIndicator from '@/components/QuotaIndicator';
 
 export default memo(function TranslationPanel() {
   const selectedText = useStore((s) => s.selectedText);
@@ -43,17 +44,21 @@ export default memo(function TranslationPanel() {
       {showTranslation && (
         <div className="px-3 sm:px-4 py-3">
           <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <h3 className="text-sm font-semibold text-gray-700">번역 결과</h3>
               {translateQuota && (
-                <span className={`text-xs ${translateQuota.remaining <= 5 ? 'text-red-500' : 'text-gray-400'}`}>
-                  {translateQuota.remaining}/{translateQuota.limit}
-                </span>
+                <QuotaIndicator
+                  label="번역"
+                  used={translateQuota.limit - translateQuota.remaining}
+                  limit={translateQuota.limit}
+                  color="blue"
+                  compact
+                />
               )}
             </div>
             <button
               onClick={() => setShowTranslation(false)}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
+              className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
               title="닫기"
               aria-label="번역 패널 닫기"
             >

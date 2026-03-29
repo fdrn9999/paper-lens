@@ -132,7 +132,13 @@ export default function Home() {
           <HelpButton />
         </header>
         <main className="flex-1 flex items-center justify-center p-4 sm:p-8">
-          <div className="w-full max-w-xl">
+          <div className="w-full max-w-xl space-y-6">
+            <div className="text-center">
+              <p className="text-gray-600 text-sm sm:text-base leading-relaxed">
+                PDF 논문을 업로드하면 AI가 문서를 분석합니다.<br className="hidden sm:inline" />
+                키워드 검색, 의미 기반 AI 검색, 드래그 번역으로 논문을 빠르게 탐색하세요.
+              </p>
+            </div>
             <FileUploader />
           </div>
         </main>
@@ -177,7 +183,7 @@ export default function Home() {
           {/* Hamburger (mobile + tablet) */}
           <button
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className="relative lg:hidden p-1.5 rounded hover:bg-gray-100 transition-colors shrink-0"
+            className="relative lg:hidden min-w-[44px] min-h-[44px] flex items-center justify-center rounded hover:bg-gray-100 transition-colors shrink-0"
             aria-label="검색 결과 패널"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -214,7 +220,7 @@ export default function Home() {
               {/* Mobile: close button only */}
               <button
                 onClick={reset}
-                className="sm:hidden p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-red-500 transition-colors shrink-0"
+                className="sm:hidden min-w-[44px] min-h-[44px] flex items-center justify-center rounded hover:bg-gray-100 text-gray-400 hover:text-red-500 transition-colors shrink-0"
                 title="파일 닫기"
                 aria-label="파일 닫기"
               >
@@ -271,7 +277,7 @@ export default function Home() {
             <span className="text-sm font-medium text-gray-700">검색 결과</span>
             <button
               onClick={() => setIsSidebarOpen(false)}
-              className="p-1 rounded hover:bg-gray-100"
+              className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded hover:bg-gray-100"
               aria-label="사이드바 닫기"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

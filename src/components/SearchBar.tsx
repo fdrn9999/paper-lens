@@ -3,6 +3,7 @@
 import { useCallback, useRef, useState, useEffect, memo } from 'react';
 import useStore from '@/store/useStore';
 import { getEmbeddingMessage } from '@/lib/messages';
+import QuotaIndicator from '@/components/QuotaIndicator';
 
 export default memo(function SearchBar() {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -137,7 +138,7 @@ export default memo(function SearchBar() {
             type="button"
             onClick={() => { clearSearch(); lastSearchedRef.current = ''; }}
             className="px-3 sm:px-4 py-2 text-sm bg-gray-500 text-white rounded-lg
-                       hover:bg-gray-600 transition-colors font-medium shrink-0 min-h-[44px]"
+                       hover:bg-gray-600 active:bg-gray-700 transition-colors font-medium shrink-0 min-h-[44px]"
             aria-label="검색 취소"
           >
             취소
@@ -146,7 +147,7 @@ export default memo(function SearchBar() {
           <button
             type="submit"
             className="px-3 sm:px-4 py-2 text-sm bg-blue-600 text-white rounded-lg
-                       hover:bg-blue-700 transition-colors font-medium shrink-0 min-h-[44px]"
+                       hover:bg-blue-700 active:bg-blue-800 transition-colors font-medium shrink-0 min-h-[44px]"
           >
             검색
           </button>
@@ -246,13 +247,17 @@ export default memo(function SearchBar() {
 
         {/* Embedding progress / quota / countdown indicator */}
         {retrySec > 0 ? (
-          <span className="text-xs text-red-500 whitespace-nowrap hidden sm:inline">{retrySec}초 후 재시도</span>
+          <span className="text-xs text-red-500 whitespace-nowrap">{retrySec}초 후 재시도</span>
         ) : embeddingProgress ? (
-          <span className="text-xs text-purple-600 whitespace-nowrap animate-pulse hidden sm:inline">{getEmbeddingMessage(embeddingProgress)}</span>
+          <span className="text-xs text-purple-600 whitespace-nowrap animate-pulse">{getEmbeddingMessage(embeddingProgress)}</span>
         ) : searchMode === 'semantic' && embedQuota ? (
-          <span className={`text-xs whitespace-nowrap ${embedQuota.remaining <= 3 ? 'text-red-500' : 'text-gray-400'}`}>
-            {embedQuota.remaining}/{embedQuota.limit}
-          </span>
+          <QuotaIndicator
+            label="AI"
+            used={embedQuota.limit - embedQuota.remaining}
+            limit={embedQuota.limit}
+            color="purple"
+            compact
+          />
         ) : null}
       </div>
     </div>
