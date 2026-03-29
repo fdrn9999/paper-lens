@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 
 export default function PrivacyPage() {
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-[100dvh] bg-white max-w-[100vw] overflow-x-hidden">
       <a href="#privacy-content" className="skip-to-content">본문으로 건너뛰기</a>
       <header className="flex items-center justify-between px-4 sm:px-6 py-4 border-b bg-white">
         <Link href="/" className="flex items-center gap-2 hover:opacity-70 transition-opacity">
@@ -37,7 +37,7 @@ export default function PrivacyPage() {
             <h2 className="text-lg font-semibold text-gray-900 mb-3">2. 수집하는 개인정보 항목</h2>
             <p>서비스는 회원가입 절차가 없으며, 최소한의 정보만을 자동으로 수집합니다.</p>
             <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
-              <table className="w-full mt-3 text-sm border-collapse min-w-[400px]">
+              <table className="w-full mt-3 text-sm border-collapse min-w-0">
                 <thead>
                   <tr className="border-b bg-gray-50">
                     <th className="text-left py-2 px-3 font-medium text-gray-700">구분</th>
@@ -93,7 +93,7 @@ export default function PrivacyPage() {
             <h2 className="text-lg font-semibold text-gray-900 mb-3">5. 제3자 제공 및 위탁</h2>
             <p>서비스는 다음의 외부 서비스를 이용하며, 이에 따라 이용자의 정보가 제3자에게 전달될 수 있습니다.</p>
             <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
-              <table className="w-full mt-3 text-sm border-collapse min-w-[400px]">
+              <table className="w-full mt-3 text-sm border-collapse min-w-0">
                 <thead>
                   <tr className="border-b bg-gray-50">
                     <th className="text-left py-2 px-3 font-medium text-gray-700">제공받는 자</th>
@@ -190,7 +190,7 @@ export default function PrivacyPage() {
         </div>
       </main>
 
-      <footer className="py-4 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[11px] text-gray-400">
+      <footer className="py-4 pb-safe flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[11px] text-gray-400 px-4">
         <span className="whitespace-nowrap">Made by 정진호(fdrn9999)</span>
         <a href="https://github.com/fdrn9999" target="_blank" rel="noopener noreferrer"
            className="whitespace-nowrap hover:text-gray-600 transition-colors">GitHub</a>

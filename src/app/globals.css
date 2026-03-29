@@ -30,11 +30,25 @@
   left: 0;
 }
 
+html {
+  overflow-x: hidden;
+}
+
 body {
   @apply bg-gray-50 text-gray-900;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   -webkit-user-select: none;
   user-select: none;
+}
+
+/* Safe area padding utilities for mobile browser chrome */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.mb-safe {
+  margin-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 /* Allow text selection in specific areas */

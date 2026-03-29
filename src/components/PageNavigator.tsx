@@ -55,8 +55,8 @@ export default memo(function PageNavigator() {
   const isPageMode = viewerMode === 'page';
 
   return (
-    <nav className="flex items-center justify-between px-2 sm:px-4 md:px-6 py-2 bg-white border-t text-xs sm:text-sm" aria-label="페이지 탐색">
-      <div className="flex items-center gap-1 sm:gap-2 md:gap-3">
+    <nav className="flex items-center justify-between px-1 sm:px-4 md:px-6 py-2 pb-safe bg-white border-t text-xs sm:text-sm" aria-label="페이지 탐색">
+      <div className="flex items-center gap-0.5 sm:gap-2 md:gap-3">
         {/* Mode toggle */}
         <button
           data-guide="viewer-mode"
@@ -121,23 +121,23 @@ export default memo(function PageNavigator() {
         </div>
       )}
 
-      <div className="flex items-center gap-1 sm:gap-2 md:gap-3">
+      <div className="flex items-center gap-0.5 sm:gap-2 md:gap-3">
         <button
           onClick={() => setScale(scale - 0.25)}
           disabled={scale <= 0.5}
-          className="px-2 py-1 min-w-[36px] min-h-[36px] sm:min-w-[44px] sm:min-h-[44px] flex items-center justify-center rounded hover:bg-gray-100 disabled:opacity-30 transition-colors"
+          className="px-1 sm:px-2 py-1 min-w-[32px] min-h-[36px] sm:min-w-[44px] sm:min-h-[44px] flex items-center justify-center rounded hover:bg-gray-100 disabled:opacity-30 transition-colors"
           title="축소"
           aria-label="축소"
         >
           −
         </button>
-        <span className="text-gray-600 min-w-[50px] text-center" aria-live="polite">
+        <span className="text-gray-600 hidden sm:inline min-w-[50px] text-center" aria-live="polite">
           {Math.round(scale * 100)}%
         </span>
         <button
           onClick={() => setScale(scale + 0.25)}
           disabled={scale >= 3}
-          className="px-2 py-1 min-w-[36px] min-h-[36px] sm:min-w-[44px] sm:min-h-[44px] flex items-center justify-center rounded hover:bg-gray-100 disabled:opacity-30 transition-colors"
+          className="px-1 sm:px-2 py-1 min-w-[32px] min-h-[36px] sm:min-w-[44px] sm:min-h-[44px] flex items-center justify-center rounded hover:bg-gray-100 disabled:opacity-30 transition-colors"
           title="확대"
           aria-label="확대"
         >

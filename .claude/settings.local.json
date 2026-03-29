@@ -24,7 +24,8 @@
       "Bash(find /c/Users/JinhoLap/Documents/PaperLens -not -path */node_modules/* -not -path */.next/* -not -path */.git/* -type f -o -type d)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(git remote:*)"
     ]
   }
 }

@@ -122,7 +122,7 @@ export default function Home() {
   // Landing view
   if (!pdfData && !isLoadingPdf) {
     return (
-      <div className="min-h-screen flex flex-col overflow-y-auto fixed inset-0">
+      <div className="min-h-[100dvh] flex flex-col overflow-y-auto fixed inset-0 max-w-[100vw] overflow-x-hidden">
         <header className="flex items-center justify-between px-4 sm:px-6 py-4 border-b bg-white">
           <div className="flex items-center gap-2">
             <img src="/favicon.svg" alt="PaperLens 로고" className="w-7 h-7" />
@@ -142,7 +142,7 @@ export default function Home() {
             <FileUploader />
           </div>
         </main>
-        <footer className="py-4 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[11px] text-gray-400">
+        <footer className="py-4 pb-safe flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[11px] text-gray-400 px-4">
           <span className="whitespace-nowrap">Made by 정진호(fdrn9999)</span>
           <a href="https://github.com/fdrn9999" target="_blank" rel="noopener noreferrer"
              className="whitespace-nowrap hover:text-gray-600 transition-colors">GitHub</a>
@@ -159,7 +159,7 @@ export default function Home() {
   // Loading view
   if (isLoadingPdf && !pdfData) {
     return (
-      <div className="h-screen flex items-center justify-center">
+      <div className="h-[100dvh] flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
           <div className="animate-spin h-10 w-10 border-4 border-blue-500 border-t-transparent rounded-full" />
           <p className="text-gray-600">PDF 로딩 중...</p>
@@ -170,7 +170,7 @@ export default function Home() {
 
   // Main app view
   return (
-    <div className="h-screen flex flex-col overflow-hidden">
+    <div className="h-[100dvh] flex flex-col overflow-hidden max-w-[100vw]">
       <a href="#main-content" className="skip-to-content">본문으로 건너뛰기</a>
       {/* Guide overlay */}
       <GuideOverlay />

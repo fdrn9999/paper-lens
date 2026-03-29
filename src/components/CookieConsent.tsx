@@ -24,7 +24,7 @@ export default function CookieConsent() {
   if (!visible) return null;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-[150] bg-white border-t shadow-lg px-4 py-3 sm:px-6 sm:py-4 animate-slide-up">
+    <div className="fixed bottom-0 left-0 right-0 z-[150] bg-white border-t shadow-lg px-4 py-3 sm:px-6 sm:py-4 pb-safe animate-slide-up">
       <div className="max-w-3xl mx-auto flex flex-col sm:flex-row items-start sm:items-center gap-3">
         <p className="text-sm text-gray-600 flex-1">
           이 사이트는 광고 및 서비스 분석을 위해 쿠키를 사용합니다.{' '}
