@@ -136,6 +136,56 @@ function findSpannedItems(offsets: ItemOffset[], matchStart: number, matchEnd: n
   return spans;
 }
 
+/**
+ * Build a broader context string from surrounding items for display in result list.
+ * Returns the wider context and adjusted charStart/charEnd within it.
+ */
+function buildBroaderContext(
+  offsets: ItemOffset[],
+  matchStart: number,
+  matchEnd: number,
+  maxChars: number = 80
+): { context: string; charStart: number; charEnd: number } {
+  // Find the range of items that cover the match
+  let firstIdx = 0;
+  let lastIdx = offsets.length - 1;
+  for (let i = 0; i < offsets.length; i++) {
+    if (offsets[i].end > matchStart) { firstIdx = i; break; }
+  }
+  for (let i = offsets.length - 1; i >= 0; i--) {
+    if (offsets[i].start < matchEnd) { lastIdx = i; break; }
+  }
+
+  // Expand outward to gather ~maxChars of context
+  let charCount = 0;
+  for (let i = firstIdx; i <= lastIdx; i++) charCount += offsets[i].item.text.length;
+
+  while (charCount < maxChars && (firstIdx > 0 || lastIdx < offsets.length - 1)) {
+    if (firstIdx > 0) {
+      firstIdx--;
+      charCount += offsets[firstIdx].item.text.length;
+    }
+    if (charCount >= maxChars) break;
+    if (lastIdx < offsets.length - 1) {
+      lastIdx++;
+      charCount += offsets[lastIdx].item.text.length;
+    }
+  }
+
+  const contextParts: string[] = [];
+  let contextStart = offsets[firstIdx].start;
+  for (let i = firstIdx; i <= lastIdx; i++) {
+    contextParts.push(offsets[i].item.text);
+  }
+  const context = contextParts.join('');
+
+  return {
+    context,
+    charStart: matchStart - contextStart,
+    charEnd: matchEnd - contextStart,
+  };
+}
+
 /** Regex matching characters to KEEP (letters, numbers, CJK). Everything else is stripped. */
 const KEEP_CHARS = /[\p{L}\p{N}]/u;
 
@@ -187,17 +237,16 @@ function cjkSearch(
       const origEnd = toOriginal[pos + normalizedKw.length - 1] + 1;
       const hit = findItemAt(offsets, origStart);
       if (hit) {
-        const localStart = Math.max(0, origStart - hit.start);
-        const localEnd = Math.min(hit.item.text.length, origEnd - hit.start);
+        const broader = buildBroaderContext(offsets, origStart, origEnd);
         const spans = findSpannedItems(offsets, origStart, origEnd);
         results.push({
           id: `${page.page}-${hit.item.itemIndex}-${origStart}`,
           page: page.page,
           matchedToken: concat.slice(origStart, origEnd),
-          context: hit.item.text,
+          context: broader.context,
           itemIndex: hit.item.itemIndex,
-          charStart: localStart,
-          charEnd: localEnd,
+          charStart: broader.charStart,
+          charEnd: broader.charEnd,
           spans: spans.length > 1 ? spans : undefined,
         });
       }

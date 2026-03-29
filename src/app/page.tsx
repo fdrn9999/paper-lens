@@ -256,7 +256,7 @@ export default function Home() {
         {/* Backdrop (mobile + tablet) */}
         {isSidebarOpen && (
           <div
-            className="fixed inset-0 bg-black/30 z-30 lg:hidden"
+            className="absolute inset-0 bg-black/30 z-30 lg:hidden"
             onClick={() => setIsSidebarOpen(false)}
           />
         )}
@@ -266,7 +266,7 @@ export default function Home() {
           role="complementary"
           aria-label="검색 결과 사이드바"
           className={`
-            fixed inset-y-0 left-0 z-[35] w-[85vw] max-w-[288px] bg-white border-r flex flex-col shrink-0
+            absolute inset-y-0 left-0 z-[35] w-[85vw] max-w-[288px] bg-white border-r flex flex-col shrink-0
             transform transition-transform duration-200 ease-out
             lg:relative lg:translate-x-0 lg:w-72 lg:max-w-none
             ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
