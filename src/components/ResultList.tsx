@@ -23,6 +23,53 @@ function getVirtualItemHeight(item: VirtualItem): number {
   return isSemantic(item.result) ? SEMANTIC_ITEM_HEIGHT : ITEM_HEIGHT;
 }
 
+/** Find keyword in context reliably, falling back to charStart/charEnd */
+function findMatchInContext(context: string, matchedToken: string, charStart: number, charEnd: number) {
+  // First try: find matchedToken directly in context (case-insensitive)
+  const ctxLower = context.toLowerCase();
+  const tokenLower = matchedToken.toLowerCase();
+  const idx = ctxLower.indexOf(tokenLower);
+  if (idx >= 0) {
+    return { start: idx, end: idx + matchedToken.length };
+  }
+  // Second try: use charStart/charEnd if they are within bounds and produce non-empty text
+  if (charStart >= 0 && charEnd <= context.length && charStart < charEnd) {
+    return { start: charStart, end: charEnd };
+  }
+  // Last resort: show the full context without highlight
+  return null;
+}
+
+function HighlightedContext({ result, isCurrent }: { result: SearchResult; isCurrent: boolean }) {
+  const match = findMatchInContext(result.context, result.matchedToken, result.charStart, result.charEnd);
+
+  if (!match) {
+    return (
+      <p className="text-gray-700 leading-relaxed truncate">
+        {result.context.slice(0, 60)}{result.context.length > 60 ? '...' : ''}
+      </p>
+    );
+  }
+
+  const before = result.context.slice(0, match.start);
+  const highlighted = result.context.slice(match.start, match.end);
+  const after = result.context.slice(match.end);
+
+  return (
+    <p className="text-gray-700 leading-relaxed truncate">
+      {before.length > 30
+        ? '...' + before.slice(-30)
+        : before}
+      <span className={`font-bold ${isCurrent ? 'text-orange-600' : 'text-yellow-600'}`}>
+        {highlighted}
+      </span>
+      {after.length > 30
+        ? after.slice(0, 30) + '...'
+        : after}
+    </p>
+  );
+}
+
 const ResultItem = memo(function ResultItem({
   result,
   isCurrent,
@@ -54,19 +101,7 @@ const ResultItem = memo(function ResultItem({
           {result.context}
         </p>
       ) : (
-        <p className="text-gray-700 leading-relaxed truncate">
-          {result.context.slice(0, result.charStart).length > 30
-            ? '...' + result.context.slice(Math.max(0, result.charStart - 30), result.charStart)
-            : result.context.slice(0, result.charStart)}
-          <span
-            className={`font-bold ${isCurrent ? 'text-orange-600' : 'text-yellow-600'}`}
-          >
-            {result.context.slice(result.charStart, result.charEnd)}
-          </span>
-          {result.context.slice(result.charEnd).length > 30
-            ? result.context.slice(result.charEnd, result.charEnd + 30) + '...'
-            : result.context.slice(result.charEnd)}
-        </p>
+        <HighlightedContext result={result} isCurrent={isCurrent} />
       )}
     </button>
   );
