@@ -262,8 +262,7 @@ export default memo(function SearchBar() {
         ) : searchMode === 'semantic' && embedQuota ? (
           <QuotaIndicator
             label="AI"
-            used={embedQuota.limit - embedQuota.remaining}
-            limit={embedQuota.limit}
+            usedPercent={embedQuota.usedPercent}
             color="purple"
             compact
           />

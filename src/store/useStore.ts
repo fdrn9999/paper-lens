@@ -196,13 +196,6 @@ function scheduleQuotaReset(get: () => AppState, set: (s: Partial<AppState>) => 
   set({ [retryKey]: Date.now() + 60000 });
   quotaTimerMap[type] = setTimeout(() => {
     delete quotaTimerMap[type];
-    if (type === 'embed') {
-      const cur = get().embedQuota;
-      if (cur && cur.remaining <= 0) set({ embedQuota: { ...cur, remaining: cur.limit } });
-    } else {
-      const cur = get().translateQuota;
-      if (cur && cur.remaining <= 0) set({ translateQuota: { ...cur, remaining: cur.limit } });
-    }
     set({ [retryKey]: null });
   }, 60000);
 }
@@ -384,8 +377,8 @@ interface AppState {
   translationErrorDetail: string;
   showTranslation: boolean;
 
-  translateQuota: { remaining: number; limit: number } | null;
-  embedQuota: { remaining: number; limit: number } | null;
+  translateQuota: { usedPercent: number; usedChars: number; limitChars: number } | null;
+  embedQuota: { usedPercent: number; usedChars: number; limitChars: number } | null;
   embedRetryAt: number | null;
   translateRetryAt: number | null;
   dailyUsage: { translate: number; embed: number; date: string };
@@ -419,7 +412,7 @@ interface AppState {
   setShowTranslation: (v: boolean) => void;
   translate: (text: string) => Promise<void>;
   updateQuotaFromHeaders: (type: 'translate' | 'embed', headers: Headers) => void;
-  incrementDailyUsage: (type: 'translate' | 'embed') => void;
+  incrementDailyUsage: (type: 'translate' | 'embed', charCount?: number) => void;
   getDailyUsage: (type: 'translate' | 'embed') => number;
 
   setViewerMode: (mode: 'scroll' | 'page') => void;
@@ -629,24 +622,11 @@ const useStore = create<AppState>()(
             return;
           }
 
-          // Quota pre-check: trust server headers when available, fall back to local counter
-          const LOCAL_EMBED_LIMIT = 20;
+          // Quota pre-check: if server reports 100% used, block
           const embedQ = get().embedQuota;
-          if (!get().sentenceEmbeddings) {
-            if (embedQ) {
-              // Server quota available — trust it over local counter (prevents ghost quota after server reset)
-              if (embedQ.remaining <= 0) {
-                set({ embeddingProgress: { code: 'EMBED_QUOTA_EXCEEDED' } });
-                return;
-              }
-            } else {
-              // No server data yet — fall back to local daily counter
-              const localEmbedUsage = get().getDailyUsage('embed');
-              if (localEmbedUsage >= LOCAL_EMBED_LIMIT) {
-                set({ embeddingProgress: { code: 'EMBED_QUOTA_EXCEEDED' } });
-                return;
-              }
-            }
+          if (!get().sentenceEmbeddings && embedQ && embedQ.usedPercent >= 100) {
+            set({ embeddingProgress: { code: 'EMBED_QUOTA_EXCEEDED' } });
+            return;
           }
 
           if (semanticAbortController) { semanticAbortController.abort(); }
@@ -700,8 +680,7 @@ const useStore = create<AppState>()(
                       });
                       get().updateQuotaFromHeaders('embed', res.headers);
                       if (res.status === 429) {
-                        const eq = get().embedQuota;
-                        set({ embedQuota: eq ? { ...eq, remaining: 0 } : { remaining: 0, limit: 20 } });
+                        set({ embedQuota: { usedPercent: 100, usedChars: 0, limitChars: 0 } });
                         scheduleQuotaReset(get, set, 'embed');
                         const errData = await res.json().catch(() => ({}));
                         set({ isEmbedding: false, embeddingProgress: { code: 'RATE_LIMITED', detail: errData.error }, searchResults: [], currentResultIndex: -1 });
@@ -764,8 +743,7 @@ const useStore = create<AppState>()(
               });
               get().updateQuotaFromHeaders('embed', kwRes.headers);
               if (kwRes.status === 429) {
-                const eq = get().embedQuota;
-                set({ embedQuota: eq ? { ...eq, remaining: 0 } : { remaining: 0, limit: 20 } });
+                set({ embedQuota: { usedPercent: 100, usedChars: 0, limitChars: 0 } });
                 scheduleQuotaReset(get, set, 'embed');
                 set({ embeddingProgress: { code: 'RATE_LIMITED' }, searchResults: [], currentResultIndex: -1 });
                 showToastSafe('일일 AI 검색 사용 한도를 초과했습니다.', 'error');
@@ -930,21 +908,23 @@ const useStore = create<AppState>()(
       },
 
       updateQuotaFromHeaders: (type, headers) => {
-        const limit = parseInt(headers.get('X-RateLimit-Limit') || '', 10);
-        const remaining = parseInt(headers.get('X-RateLimit-Remaining') || '', 10);
-        if (!isNaN(limit) && !isNaN(remaining)) {
-          if (type === 'translate') set({ translateQuota: { remaining, limit } });
-          else set({ embedQuota: { remaining, limit } });
+        const usedChars = parseInt(headers.get('X-Quota-Used-Chars') || '', 10);
+        const limitChars = parseInt(headers.get('X-Quota-Limit-Chars') || '', 10);
+        const usedPercent = parseInt(headers.get('X-Quota-Used-Percent') || '', 10);
+        if (!isNaN(usedChars) && !isNaN(limitChars) && !isNaN(usedPercent)) {
+          const quota = { usedPercent, usedChars, limitChars };
+          if (type === 'translate') set({ translateQuota: quota });
+          else set({ embedQuota: quota });
         }
       },
 
-      incrementDailyUsage: (type) => {
+      incrementDailyUsage: (type, charCount = 1) => {
         const today = getUTCDateString();
         const usage = get().dailyUsage;
         if (usage.date !== today) {
-          set({ dailyUsage: { translate: type === 'translate' ? 1 : 0, embed: type === 'embed' ? 1 : 0, date: today } });
+          set({ dailyUsage: { translate: type === 'translate' ? charCount : 0, embed: type === 'embed' ? charCount : 0, date: today } });
         } else {
-          set({ dailyUsage: { ...usage, [type]: usage[type] + 1 } });
+          set({ dailyUsage: { ...usage, [type]: usage[type] + charCount } });
         }
       },
 
@@ -968,20 +948,11 @@ const useStore = create<AppState>()(
       translate: async (text) => {
         if (!text.trim()) return;
 
-        // Quota pre-check: trust server headers when available, fall back to local counter
-        const LOCAL_TRANSLATE_LIMIT = 50;
+        // Quota pre-check: if server reports 100% used, block
         const quota = get().translateQuota;
-        if (quota) {
-          if (quota.remaining <= 0) {
-            set({ selectedText: text, showTranslation: true, translationResult: '', isTranslationError: true, translationErrorCode: 'TRANSLATE_QUOTA_EXCEEDED', translationErrorDetail: '' });
-            return;
-          }
-        } else {
-          const localUsage = get().getDailyUsage('translate');
-          if (localUsage >= LOCAL_TRANSLATE_LIMIT) {
-            set({ selectedText: text, showTranslation: true, translationResult: '', isTranslationError: true, translationErrorCode: 'TRANSLATE_QUOTA_EXCEEDED', translationErrorDetail: '' });
-            return;
-          }
+        if (quota && quota.usedPercent >= 100) {
+          set({ selectedText: text, showTranslation: true, translationResult: '', isTranslationError: true, translationErrorCode: 'TRANSLATE_QUOTA_EXCEEDED', translationErrorDetail: '' });
+          return;
         }
 
         if (translateAbortController) translateAbortController.abort();
@@ -999,7 +970,7 @@ const useStore = create<AppState>()(
           });
           get().updateQuotaFromHeaders('translate', res.headers);
           if (res.status === 429) {
-            set({ translateQuota: quota ? { ...quota, remaining: 0 } : { remaining: 0, limit: 50 } });
+            set({ translateQuota: { usedPercent: 100, usedChars: 0, limitChars: 0 } });
             scheduleQuotaReset(get, set, 'translate');
             const data = await res.json().catch(() => ({}));
             set({ translationResult: '', isTranslationError: true, translationErrorCode: 'RATE_LIMITED', translationErrorDetail: data.error || '' });

@@ -49,8 +49,7 @@ export default memo(function TranslationPanel() {
               {translateQuota && (
                 <QuotaIndicator
                   label="번역"
-                  used={translateQuota.limit - translateQuota.remaining}
-                  limit={translateQuota.limit}
+                  usedPercent={translateQuota.usedPercent}
                   color="blue"
                   compact
                 />

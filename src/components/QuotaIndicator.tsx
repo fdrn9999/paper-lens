@@ -4,18 +4,16 @@ import { memo } from 'react';
 
 interface QuotaIndicatorProps {
   label: string;
-  used: number;
-  limit: number;
+  usedPercent: number;
   color?: 'blue' | 'purple';
   compact?: boolean;
 }
 
-export default memo(function QuotaIndicator({ label, used, limit, color = 'blue', compact = false }: QuotaIndicatorProps) {
-  const remaining = Math.max(0, limit - used);
-  const ratio = limit > 0 ? used / limit : 0;
-  const percentage = Math.min(100, Math.round(ratio * 100));
+export default memo(function QuotaIndicator({ label, usedPercent, color = 'blue', compact = false }: QuotaIndicatorProps) {
+  const percentage = Math.min(100, Math.max(0, usedPercent));
+  const remaining = 100 - percentage;
 
-  const isLow = remaining <= Math.ceil(limit * 0.15);
+  const isLow = remaining <= 15;
   const isDepleted = remaining <= 0;
 
   const barColor = isDepleted
@@ -36,7 +34,7 @@ export default memo(function QuotaIndicator({ label, used, limit, color = 'blue'
 
   if (compact) {
     return (
-      <div className="flex items-center gap-1.5 min-w-[80px]" title={`${label}: ${used}/${limit} 사용`}>
+      <div className="flex items-center gap-1.5 min-w-[80px]" title={`${label}: ${percentage}% 사용`}>
         <div className={`flex-1 h-1.5 rounded-full ${trackColor} overflow-hidden`}>
           <div
             className={`h-full rounded-full transition-all duration-300 ${barColor}`}
@@ -44,14 +42,14 @@ export default memo(function QuotaIndicator({ label, used, limit, color = 'blue'
           />
         </div>
         <span className={`text-[10px] font-medium tabular-nums whitespace-nowrap ${textColor}`}>
-          {used}/{limit}
+          {percentage}%
         </span>
       </div>
     );
   }
 
   return (
-    <div className="flex items-center gap-2" title={`${label}: ${used}/${limit} 사용`}>
+    <div className="flex items-center gap-2" title={`${label}: ${percentage}% 사용`}>
       <span className={`text-[11px] font-medium whitespace-nowrap ${textColor}`}>{label}</span>
       <div className={`w-16 sm:w-20 h-1.5 rounded-full ${trackColor} overflow-hidden`}>
         <div
@@ -60,7 +58,7 @@ export default memo(function QuotaIndicator({ label, used, limit, color = 'blue'
         />
       </div>
       <span className={`text-[11px] font-medium tabular-nums whitespace-nowrap ${textColor}`}>
-        {used}/{limit}
+        {percentage}%
       </span>
     </div>
   );

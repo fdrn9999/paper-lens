@@ -4,15 +4,6 @@ import { getGeminiApiKey } from '@/lib/env';
 
 export async function POST(request: NextRequest) {
   try {
-    // Global budget check first (protects against total cost overrun)
-    const globalQuota = checkGlobalQuota('translate');
-    if (!globalQuota.allowed) {
-      return NextResponse.json(
-        { error: '서비스 사용량이 많아 일시적으로 번역이 제한됩니다. 내일 다시 시도해주세요.' },
-        { status: 429 }
-      );
-    }
-
     const ip = getClientIp(request);
     const { allowed, retryAfterMs } = checkRateLimit(`translate:${ip}`);
     if (!allowed) {
@@ -66,15 +57,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const quota = checkDailyQuota('translate', ip);
+    const charCount = trimmed.length;
+
+    // Global budget check (character-based)
+    const globalQuota = checkGlobalQuota('translate', charCount);
+    if (!globalQuota.allowed) {
+      return NextResponse.json(
+        { error: '서비스 사용량이 많아 일시적으로 번역이 제한됩니다. 내일 다시 시도해주세요.' },
+        { status: 429 }
+      );
+    }
+
+    // Per-IP daily quota check (character-based)
+    const quota = checkDailyQuota('translate', ip, charCount);
     if (!quota.allowed) {
       return NextResponse.json(
-        { error: '오늘의 번역 사용 횟수를 초과했습니다. (일일 50회 제한)' },
+        { error: `오늘의 번역 사용량을 초과했습니다. (${quota.usedPercent}% 사용)` },
         {
           status: 429,
           headers: {
-            'X-RateLimit-Limit': String(quota.limit),
-            'X-RateLimit-Remaining': '0',
+            'X-Quota-Used-Chars': String(quota.usedChars),
+            'X-Quota-Limit-Chars': String(quota.limitChars),
+            'X-Quota-Used-Percent': String(quota.usedPercent),
           },
         }
       );
@@ -132,8 +136,9 @@ ${trimmed}`,
 
     return NextResponse.json({ translation }, {
       headers: {
-        'X-RateLimit-Limit': String(quota.limit),
-        'X-RateLimit-Remaining': String(quota.remaining),
+        'X-Quota-Used-Chars': String(quota.usedChars),
+        'X-Quota-Limit-Chars': String(quota.limitChars),
+        'X-Quota-Used-Percent': String(quota.usedPercent),
       },
     });
   } catch {

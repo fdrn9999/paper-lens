@@ -36,8 +36,8 @@ export function checkRateLimit(key: string): { allowed: boolean; retryAfterMs: n
   return { allowed: true, retryAfterMs: 0 };
 }
 
-// ===== Daily quota (per-IP, resets at UTC midnight) =====
-const dailyCounts = new Map<string, { count: number; resetDate: string }>();
+// ===== Daily usage quota (character-based, resets at UTC midnight) =====
+const dailyUsage = new Map<string, { chars: number; resetDate: string }>();
 let lastDailyCleanup = Date.now();
 
 function todayUTC(): string {
@@ -49,68 +49,69 @@ function lazyDailyCleanup() {
   if (now - lastDailyCleanup < 60 * 60 * 1000) return; // cleanup hourly
   lastDailyCleanup = now;
   const today = todayUTC();
-  for (const [key, value] of dailyCounts) {
-    if (value.resetDate !== today) dailyCounts.delete(key);
+  for (const [key, value] of dailyUsage) {
+    if (value.resetDate !== today) dailyUsage.delete(key);
   }
 }
 
-export const DAILY_LIMITS: Record<string, number> = {
-  translate: 50,
-  embed: 20,
+/** Per-IP daily character limits */
+export const DAILY_CHAR_LIMITS: Record<string, number> = {
+  translate: parseInt(process.env.DAILY_TRANSLATE_CHAR_LIMIT || '50000', 10),
+  embed: parseInt(process.env.DAILY_EMBED_CHAR_LIMIT || '100000', 10),
 };
 
-// ===== Global daily budget (all users combined, protects against cost overrun) =====
-const globalDailyCounts = new Map<string, { count: number; resetDate: string }>();
+// ===== Global daily budget (all users combined, character-based) =====
+const globalDailyUsage = new Map<string, { chars: number; resetDate: string }>();
 
-const DAILY_GLOBAL_LIMITS: Record<string, number> = {
-  translate: parseInt(process.env.DAILY_GLOBAL_TRANSLATE_LIMIT || '500', 10),
-  embed: parseInt(process.env.DAILY_GLOBAL_EMBED_LIMIT || '200', 10),
+const DAILY_GLOBAL_CHAR_LIMITS: Record<string, number> = {
+  translate: parseInt(process.env.DAILY_GLOBAL_TRANSLATE_CHAR_LIMIT || '500000', 10),
+  embed: parseInt(process.env.DAILY_GLOBAL_EMBED_CHAR_LIMIT || '1000000', 10),
 };
 
-export function checkGlobalQuota(endpoint: string): { allowed: boolean; remaining: number; limit: number } {
-  const limit = DAILY_GLOBAL_LIMITS[endpoint] ?? 500;
+export function checkGlobalQuota(endpoint: string, charCount: number): { allowed: boolean; usedChars: number; limitChars: number; usedPercent: number } {
+  const limit = DAILY_GLOBAL_CHAR_LIMITS[endpoint] ?? 500000;
   const key = `global:${endpoint}`;
   const today = todayUTC();
-  const entry = globalDailyCounts.get(key);
+  const entry = globalDailyUsage.get(key);
 
   if (!entry || entry.resetDate !== today) {
-    globalDailyCounts.set(key, { count: 1, resetDate: today });
-    return { allowed: true, remaining: limit - 1, limit };
+    globalDailyUsage.set(key, { chars: charCount, resetDate: today });
+    return { allowed: true, usedChars: charCount, limitChars: limit, usedPercent: Math.round((charCount / limit) * 100) };
   }
 
-  if (entry.count >= limit) {
-    return { allowed: false, remaining: 0, limit };
+  if (entry.chars + charCount > limit) {
+    return { allowed: false, usedChars: entry.chars, limitChars: limit, usedPercent: Math.min(100, Math.round((entry.chars / limit) * 100)) };
   }
 
-  entry.count++;
-  return { allowed: true, remaining: limit - entry.count, limit };
+  entry.chars += charCount;
+  return { allowed: true, usedChars: entry.chars, limitChars: limit, usedPercent: Math.round((entry.chars / limit) * 100) };
 }
 
 /**
- * Check daily quota for an endpoint + IP combination.
- * @returns allowed, remaining count, and total limit
+ * Check daily usage quota for an endpoint + IP combination (character-based).
  */
 export function checkDailyQuota(
   endpoint: string,
-  ip: string
-): { allowed: boolean; remaining: number; limit: number } {
+  ip: string,
+  charCount: number
+): { allowed: boolean; usedChars: number; limitChars: number; usedPercent: number } {
   lazyDailyCleanup();
-  const limit = DAILY_LIMITS[endpoint] ?? 50;
+  const limit = DAILY_CHAR_LIMITS[endpoint] ?? 50000;
   const key = `daily:${endpoint}:${ip}`;
   const today = todayUTC();
-  const entry = dailyCounts.get(key);
+  const entry = dailyUsage.get(key);
 
   if (!entry || entry.resetDate !== today) {
-    dailyCounts.set(key, { count: 1, resetDate: today });
-    return { allowed: true, remaining: limit - 1, limit };
+    dailyUsage.set(key, { chars: charCount, resetDate: today });
+    return { allowed: true, usedChars: charCount, limitChars: limit, usedPercent: Math.round((charCount / limit) * 100) };
   }
 
-  if (entry.count >= limit) {
-    return { allowed: false, remaining: 0, limit };
+  if (entry.chars + charCount > limit) {
+    return { allowed: false, usedChars: entry.chars, limitChars: limit, usedPercent: Math.min(100, Math.round((entry.chars / limit) * 100)) };
   }
 
-  entry.count++;
-  return { allowed: true, remaining: limit - entry.count, limit };
+  entry.chars += charCount;
+  return { allowed: true, usedChars: entry.chars, limitChars: limit, usedPercent: Math.round((entry.chars / limit) * 100) };
 }
 
 /**
