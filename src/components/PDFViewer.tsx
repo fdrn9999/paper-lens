@@ -260,9 +260,9 @@ export default memo(function PDFViewer() {
           position: relative;
           width: ${viewport.width}px;
           height: ${viewport.height}px;
-          margin: 4px auto;
           background: white;
           box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+          flex-shrink: 0;
         `;
 
         const canvas = document.createElement('canvas');
@@ -1084,9 +1084,9 @@ export default memo(function PDFViewer() {
               width: `${dim.w * scale}px`,
               minWidth: `${Math.min(280, dim.w * scale)}px`,
               height: `${dim.h * scale}px`,
-              margin: '4px auto',
+              margin: '1px auto',
               background: 'white',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
             }}
           />
         ))}
@@ -1100,9 +1100,9 @@ export default memo(function PDFViewer() {
     <div
       onMouseDown={handleMouseDown}
       onMouseUp={handleMouseUp}
-      className="overflow-auto h-full bg-gray-200 relative"
+      className="overflow-auto h-full bg-gray-200 relative flex items-center justify-center"
     >
-      <div ref={canvasContainerRef} />
+      <div ref={canvasContainerRef} className="flex items-center justify-center" />
       {floatingBtnEl}
       {renderingCanvas && (
         <div className="absolute inset-0 flex items-center justify-center bg-white/50 z-20">
