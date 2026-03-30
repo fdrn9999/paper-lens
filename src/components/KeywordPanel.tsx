@@ -81,7 +81,8 @@ const KeywordCard = memo(function KeywordCard({
 }) {
   const handleClick = useCallback(() => onToggle(keyword.term), [onToggle, keyword.term]);
 
-  const displayPages = keyword.pages.slice(0, 5);
+  const [showAllPages, setShowAllPages] = useState(false);
+  const displayPages = showAllPages ? keyword.pages : keyword.pages.slice(0, 5);
   const extraPages = keyword.pages.length - 5;
   const scorePct = Math.round(keyword.score * 100);
 
@@ -152,8 +153,21 @@ const KeywordCard = memo(function KeywordCard({
                   P{p}
                 </button>
               ))}
-              {extraPages > 0 && (
-                <span className="text-[9px] px-1.5 py-0.5 text-gray-400">+{extraPages}</span>
+              {extraPages > 0 && !showAllPages && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); setShowAllPages(true); }}
+                  className="text-[9px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 hover:bg-gray-200 hover:text-gray-700 transition-colors font-medium"
+                >
+                  +{extraPages}
+                </button>
+              )}
+              {showAllPages && keyword.pages.length > 5 && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); setShowAllPages(false); }}
+                  className="text-[9px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 hover:bg-gray-200 hover:text-gray-700 transition-colors font-medium"
+                >
+                  접기
+                </button>
               )}
             </div>
           )}
