@@ -61,7 +61,7 @@ export default memo(function PageNavigator() {
         <button
           data-guide="viewer-mode"
           onClick={() => setViewerMode(isPageMode ? 'scroll' : 'page')}
-          className="px-2 py-1 min-w-[36px] min-h-[36px] sm:min-w-[44px] sm:min-h-[44px] flex items-center justify-center rounded hover:bg-gray-100 transition-colors"
+          className="px-2 py-1 min-w-[44px] min-h-[44px] flex items-center justify-center rounded hover:bg-gray-100 transition-colors"
           title={isPageMode ? '스크롤 모드로 전환' : '페이지 모드로 전환'}
           aria-label={isPageMode ? '스크롤 모드로 전환' : '페이지 모드로 전환'}
         >
@@ -84,7 +84,7 @@ export default memo(function PageNavigator() {
         <button
           onClick={() => setCurrentPage(currentPage - 1)}
           disabled={currentPage <= 1}
-          className="px-2 py-1 min-w-[36px] min-h-[36px] sm:min-w-[44px] sm:min-h-[44px] flex items-center justify-center rounded hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          className="px-2 py-1 min-w-[44px] min-h-[44px] flex items-center justify-center rounded hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
           aria-label="이전 페이지"
         >
           ◀
@@ -107,7 +107,7 @@ export default memo(function PageNavigator() {
         <button
           onClick={() => setCurrentPage(currentPage + 1)}
           disabled={currentPage >= totalPages}
-          className="px-2 py-1 min-w-[36px] min-h-[36px] sm:min-w-[44px] sm:min-h-[44px] flex items-center justify-center rounded hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          className="px-2 py-1 min-w-[44px] min-h-[44px] flex items-center justify-center rounded hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
           aria-label="다음 페이지"
         >
           ▶
@@ -125,19 +125,19 @@ export default memo(function PageNavigator() {
         <button
           onClick={() => setScale(scale - 0.25)}
           disabled={scale <= 0.5}
-          className="px-1 sm:px-2 py-1 min-w-[32px] min-h-[36px] sm:min-w-[44px] sm:min-h-[44px] flex items-center justify-center rounded hover:bg-gray-100 disabled:opacity-30 transition-colors"
+          className="px-1 sm:px-2 py-1 min-w-[44px] min-h-[44px] flex items-center justify-center rounded hover:bg-gray-100 disabled:opacity-30 transition-colors"
           title="축소"
           aria-label="축소"
         >
           −
         </button>
-        <span className="text-gray-600 hidden sm:inline min-w-[50px] text-center" aria-live="polite">
+        <span className="text-gray-600 inline min-w-[50px] text-center" aria-live="polite">
           {Math.round(scale * 100)}%
         </span>
         <button
           onClick={() => setScale(scale + 0.25)}
           disabled={scale >= 3}
-          className="px-1 sm:px-2 py-1 min-w-[32px] min-h-[36px] sm:min-w-[44px] sm:min-h-[44px] flex items-center justify-center rounded hover:bg-gray-100 disabled:opacity-30 transition-colors"
+          className="px-1 sm:px-2 py-1 min-w-[44px] min-h-[44px] flex items-center justify-center rounded hover:bg-gray-100 disabled:opacity-30 transition-colors"
           title="확대"
           aria-label="확대"
         >

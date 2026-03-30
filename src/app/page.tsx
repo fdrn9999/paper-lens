@@ -282,7 +282,7 @@ export default function Home() {
           <div className="flex items-center border-b shrink-0">
             <button
               onClick={() => setSidebarTab('search')}
-              className={`flex-1 px-3 py-2 text-sm font-medium transition-colors relative ${
+              className={`flex-1 px-3 py-2 text-sm font-medium transition-colors relative min-h-[44px] flex items-center justify-center ${
                 sidebarTab === 'search' ? 'text-blue-600' : 'text-gray-500 hover:text-gray-700'
               }`}
             >
@@ -299,7 +299,7 @@ export default function Home() {
             <button
               onClick={() => setSidebarTab('keywords')}
               data-guide="keyword-tab"
-              className={`flex-1 px-3 py-2 text-sm font-medium transition-colors relative ${
+              className={`flex-1 px-3 py-2 text-sm font-medium transition-colors relative min-h-[44px] flex items-center justify-center ${
                 sidebarTab === 'keywords' ? 'text-blue-600' : 'text-gray-500 hover:text-gray-700'
               }`}
             >

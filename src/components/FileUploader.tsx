@@ -107,7 +107,12 @@ export default function FileUploader() {
         {isDragging ? '📥' : '📄'}
       </div>
       <p className="text-xl font-semibold text-gray-700 mb-2">
-        {isDragging ? '여기에 놓으세요!' : 'PDF 파일을 드래그하거나 클릭하여 업로드'}
+        {isDragging ? '여기에 놓으세요!' : (
+          <>
+            <span className="sm:hidden">PDF 파일을 탭하여 업로드</span>
+            <span className="hidden sm:inline">PDF 파일을 드래그하거나 클릭하여 업로드</span>
+          </>
+        )}
       </p>
       <p className="text-sm text-gray-500">최대 10MB · PDF 형식만 지원</p>
       {error && (

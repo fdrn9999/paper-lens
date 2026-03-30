@@ -37,7 +37,7 @@ export default function ToastContainer() {
           key={toast.id}
           role="alert"
           className={`px-4 py-3 rounded-lg shadow-lg text-sm font-medium text-white
-            animate-slide-in
+            max-sm:animate-slide-up sm:animate-slide-in
             ${toast.type === 'error' ? 'bg-red-600' : toast.type === 'success' ? 'bg-green-600' : 'bg-gray-800'}`}
         >
           {toast.text}

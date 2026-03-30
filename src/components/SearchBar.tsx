@@ -139,7 +139,7 @@ export default memo(function SearchBar() {
 
           {/* Input container with search term chips */}
           <div
-            className="flex items-center flex-wrap gap-1 min-h-[40px] pl-9 pr-2 py-1 border border-gray-300 rounded-lg
+            className="flex items-center flex-wrap gap-1 min-h-[40px] max-h-[80px] overflow-y-auto pl-9 pr-2 py-1 border border-gray-300 rounded-lg
                        focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent bg-white cursor-text"
             onClick={() => inputRef.current?.focus()}
           >

@@ -37,7 +37,7 @@ export default memo(function TranslationPanel() {
   if (!pdfData) return null;
 
   return (
-    <div className={`bg-white max-h-[30vh] sm:max-h-[35vh] md:max-h-[40vh] overflow-auto pb-safe ${showTranslation ? 'border-t' : ''}`}>
+    <div className={`bg-white max-h-[30dvh] sm:max-h-[35dvh] md:max-h-[40dvh] overflow-auto ${showTranslation ? 'border-t pb-safe' : ''}`}>
       {/* Selected text bar removed — floating button in PDFViewer handles trigger */}
 
       {/* Translation result */}

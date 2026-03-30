@@ -144,7 +144,7 @@ export default function GuideOverlay() {
     const padding = 8;
     setSpotlight({
       top: rect.top - padding,
-      left: rect.left - padding,
+      left: Math.max(0, rect.left - padding),
       width: rect.width + padding * 2,
       height: rect.height + padding * 2,
     });
@@ -152,7 +152,7 @@ export default function GuideOverlay() {
     // Position tooltip — use dynamic width/height for mobile
     const tooltipWidth = Math.min(340, window.innerWidth - 32);
     const isViewerStep = step.content === '__VIEWER_MODE__';
-    const tooltipHeight = isViewerStep ? 300 : 200;
+    const tooltipHeight = isViewerStep ? 400 : 220;
     let top = 0;
     let left = rect.left + rect.width / 2 - tooltipWidth / 2;
 

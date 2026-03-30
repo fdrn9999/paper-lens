@@ -49,7 +49,7 @@ export default function HelpButton() {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 top-full mt-2 w-[calc(100vw-2rem)] sm:w-80 bg-white rounded-xl shadow-2xl border border-gray-200 z-50 overflow-hidden animate-in fade-in">
+        <div className="absolute right-0 top-full mt-2 w-80 max-w-[calc(100vw-1rem)] bg-white rounded-xl shadow-2xl border border-gray-200 z-50 overflow-hidden animate-in fade-in">
           <div className="p-4 border-b bg-gradient-to-r from-blue-50 to-purple-50">
             <h3 className="font-bold text-gray-800">PaperLens 사용 가이드</h3>
             <p className="text-xs text-gray-500 mt-1">논문을 탐색하는 새로운 방법</p>

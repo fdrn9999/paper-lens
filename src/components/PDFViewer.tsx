@@ -877,7 +877,7 @@ export default memo(function PDFViewer() {
         const scrollTop = scrollContainer.scrollTop;
         const x = Math.min(
           Math.max(e.clientX - rect.left + scrollLeft - 35, 10),
-          scrollContainer.scrollLeft + scrollContainer.clientWidth - 100
+          scrollContainer.scrollLeft + scrollContainer.clientWidth - 90
         );
         const y = Math.max(e.clientY - rect.top + scrollTop - 45, 10);
         setFloatingBtn({ x, y });
@@ -917,7 +917,7 @@ export default memo(function PDFViewer() {
             const containerRect = scrollContainer.getBoundingClientRect();
             const x = Math.min(
               Math.max(rangeRect.left - containerRect.left + scrollContainer.scrollLeft, 10),
-              scrollContainer.scrollLeft + scrollContainer.clientWidth - 100
+              scrollContainer.scrollLeft + scrollContainer.clientWidth - 90
             );
             const y = Math.max(rangeRect.top - containerRect.top + scrollContainer.scrollTop - 45, 10);
             setFloatingBtn({ x, y });
@@ -1012,13 +1012,13 @@ export default memo(function PDFViewer() {
   const floatingBtnEl = floatingBtn && selectedText && (
     <div
       className="absolute z-50 animate-in fade-in"
-      style={{ left: `${Math.max(4, floatingBtn.x)}px`, top: `${Math.max(4, floatingBtn.y)}px` }}
+      style={{ left: `${Math.min(Math.max(4, floatingBtn.x), (viewerMode === 'scroll' ? scrollContainerRef.current?.clientWidth ?? window.innerWidth : canvasContainerRef.current?.parentElement?.clientWidth ?? window.innerWidth) - 90)}px`, top: `${Math.max(4, floatingBtn.y)}px` }}
     >
       <button
         onMouseDown={(e) => e.preventDefault()}
         onClick={() => { translate(selectedText); setFloatingBtn(null); window.getSelection()?.removeAllRanges(); }}
         aria-label="선택한 텍스트 번역"
-        className="px-3.5 py-2.5 bg-blue-600 text-white text-sm rounded-lg shadow-lg
+        className="max-w-[calc(100vw-16px)] px-3.5 py-2.5 bg-blue-600 text-white text-sm rounded-lg shadow-lg
                    hover:bg-blue-700 active:bg-blue-800 transition-colors flex items-center gap-1.5"
       >
         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
