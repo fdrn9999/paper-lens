@@ -260,9 +260,9 @@ export default memo(function PDFViewer() {
           position: relative;
           width: ${viewport.width}px;
           height: ${viewport.height}px;
-          margin: 16px auto;
+          margin: 4px auto;
           background: white;
-          box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+          box-shadow: 0 2px 8px rgba(0,0,0,0.10);
         `;
 
         const canvas = document.createElement('canvas');
@@ -1084,9 +1084,9 @@ export default memo(function PDFViewer() {
               width: `${dim.w * scale}px`,
               minWidth: `${Math.min(280, dim.w * scale)}px`,
               height: `${dim.h * scale}px`,
-              margin: '16px auto',
+              margin: '4px auto',
               background: 'white',
-              boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
             }}
           />
         ))}

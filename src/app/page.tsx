@@ -210,9 +210,9 @@ export default function Home() {
       <ToastContainer />
 
       {/* Header */}
-      <header className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 px-3 sm:px-4 py-2 sm:py-3 border-b bg-white shadow-sm z-40">
-        {/* Top row on mobile: hamburger + logo + close + help; on sm+ these flow inline via `contents` */}
-        <div className="flex items-center gap-2 sm:flex sm:gap-2 sm:shrink-0">
+      <header className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 sm:py-3 border-b bg-white shadow-sm z-40 overflow-hidden shrink-0">
+        {/* Top row on mobile: hamburger + logo + close + help; on sm+ these flow inline */}
+        <div className="flex items-center gap-1 sm:gap-2 sm:shrink-0 min-w-0">
           {/* Hamburger (mobile + tablet) */}
           <button
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
