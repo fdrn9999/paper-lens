@@ -1,7 +1,8 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { PageTextContent, SearchResult, HighlightSpan, EmbeddingProgress, TranslationErrorCode, ExtractedTextItem } from '@/lib/types';
+import { PageTextContent, SearchResult, HighlightSpan, EmbeddingProgress, TranslationErrorCode, ExtractedTextItem, ExtractedKeyword, KeywordAlgorithm, SearchTerm } from '@/lib/types';
 import { exactSearch } from '@/lib/searchEngine';
+// keywordExtractor is dynamically imported in extractAllKeywords to avoid circular deps
 
 interface SentenceChunk {
   text: string;
@@ -175,6 +176,21 @@ function showToastSafe(text: string, type: 'success' | 'error' | 'info' = 'info'
     window.dispatchEvent(new CustomEvent('paperlens-toast', { detail: { text, type } }));
   }
 }
+
+/** Detect if text is predominantly Korean (>30% Korean characters). */
+function isKoreanText(text: string): boolean {
+  const koreanRe = /[\uAC00-\uD7AF\u1100-\u11FF\u3130-\u318F]/g;
+  const matches = text.match(koreanRe);
+  const koreanChars = matches ? matches.length : 0;
+  const totalChars = text.replace(/\s/g, '').length;
+  return totalChars > 0 && koreanChars / totalChars > 0.3;
+}
+
+/** Search term color palette for multi-term exact search. */
+const SEARCH_TERM_COLORS = [
+  '#FFD500', '#FF6B6B', '#4ECDC4', '#A78BFA', '#FB923C',
+  '#34D399', '#60A5FA', '#F472B6', '#FBBF24', '#818CF8',
+];
 
 let translateAbortController: AbortController | null = null;
 let semanticAbortController: AbortController | null = null;
@@ -383,6 +399,17 @@ interface AppState {
   translateRetryAt: number | null;
   dailyUsage: { translate: number; embed: number; date: string };
 
+  searchTerms: SearchTerm[];
+
+  keywords: ExtractedKeyword[] | null;
+  keywordAlgorithm: KeywordAlgorithm | 'user';
+  allKeywords: Record<string, ExtractedKeyword[]>;
+  activeKeywords: string[];
+  userKeywords: ExtractedKeyword[];
+  isExtractingKeywords: boolean;
+  keywordProgress: { current: number; total: number } | null;
+  sidebarTab: 'search' | 'keywords';
+
   viewerMode: 'scroll' | 'page';
 
   hasSeenTutorial: boolean;
@@ -414,6 +441,18 @@ interface AppState {
   updateQuotaFromHeaders: (type: 'translate' | 'embed', headers: Headers) => void;
   incrementDailyUsage: (type: 'translate' | 'embed', charCount?: number) => void;
   getDailyUsage: (type: 'translate' | 'embed') => number;
+
+  addSearchTerm: (term: string) => void;
+  removeSearchTerm: (id: string) => void;
+  clearSearchTerms: () => void;
+
+  extractAllKeywords: () => void;
+  setKeywordAlgorithm: (algo: KeywordAlgorithm | 'user') => void;
+  toggleKeywordHighlight: (term: string) => void;
+  addUserKeyword: (term: string) => void;
+  removeUserKeyword: (term: string) => void;
+  clearKeywords: () => void;
+  setSidebarTab: (tab: 'search' | 'keywords') => void;
 
   setViewerMode: (mode: 'scroll' | 'page') => void;
   toggleViewerMode: () => void;
@@ -462,6 +501,15 @@ const initialState = {
   embedRetryAt: null,
   translateRetryAt: null,
   dailyUsage: { translate: 0, embed: 0, date: '' },
+  searchTerms: [] as SearchTerm[],
+  keywords: null as ExtractedKeyword[] | null,
+  keywordAlgorithm: 'tfidf' as KeywordAlgorithm | 'user',
+  allKeywords: {} as Record<string, ExtractedKeyword[]>,
+  activeKeywords: [] as string[],
+  userKeywords: [] as ExtractedKeyword[],
+  isExtractingKeywords: false,
+  keywordProgress: null as { current: number; total: number } | null,
+  sidebarTab: 'search' as 'search' | 'keywords',
   viewerMode: 'scroll' as const,
   hasSeenTutorial: false,
   isGuideActive: false,
@@ -490,6 +538,7 @@ const useStore = create<AppState>()(
           searchResults: [],
           currentResultIndex: -1,
           searchMode: 'exact' as const,
+          searchTerms: [],
           sentenceEmbeddings: null,
           sentenceNorms: null,
           sentenceChunks: null,
@@ -506,6 +555,12 @@ const useStore = create<AppState>()(
           translationResult: '',
           translationErrorCode: null,
           translationErrorDetail: '',
+          keywords: null,
+          allKeywords: {},
+          activeKeywords: [],
+          userKeywords: [],
+          isExtractingKeywords: false,
+          keywordProgress: null,
         });
       },
       setTotalPages: (n) => set({ totalPages: n }),
@@ -528,7 +583,7 @@ const useStore = create<AppState>()(
           set({ embeddingProgress: { code: 'WAIT_EXTRACTION', current: contents.length, total: totalPages } });
         }
         // Debounced progressive search: avoids O(N²) re-search on every batch during extraction
-        if (searchQuery.trim() && searchMode === 'exact') {
+        if ((searchQuery.trim() || get().searchTerms.length > 0) && searchMode === 'exact') {
           if (progressiveSearchTimer) clearTimeout(progressiveSearchTimer);
           progressiveSearchTimer = setTimeout(() => {
             progressiveSearchTimer = null;
@@ -539,16 +594,20 @@ const useStore = create<AppState>()(
       setIsLoadingPdf: (v) => set({ isLoadingPdf: v }),
       setIsExtracting: (v) => {
         set({ isExtracting: v });
-        // When extraction finishes, auto-trigger pending search
+        // When extraction finishes, auto-trigger pending search and keyword extraction
         if (!v) {
-          const { searchQuery, searchMode } = get();
-          if (searchQuery.trim()) {
+          const { searchQuery, searchMode, searchTerms } = get();
+          if (searchQuery.trim() || searchTerms.length > 0) {
             if (searchMode === 'exact') {
               setTimeout(() => get().search(), 0);
             } else if (searchMode === 'semantic' && get().pendingSemanticRetry) {
               set({ pendingSemanticRetry: false });
               setTimeout(() => get().search(), 100);
             }
+          }
+          // Auto-extract keywords when text extraction completes
+          if (get().pageTextContents.length > 0) {
+            setTimeout(() => get().extractAllKeywords(), 200);
           }
         }
       },
@@ -574,9 +633,13 @@ const useStore = create<AppState>()(
           embeddingProgress: null,
           pendingSemanticRetry: false,
         });
-        // Auto-trigger search if query exists but no cached results to restore
+        // Auto-trigger search if query/terms exist but no cached results to restore,
+        // or when switching to exact mode with active search terms
         const q = get().searchQuery.trim();
-        if (q && get().searchResults.length === 0) {
+        const terms = get().searchTerms;
+        const shouldSearch = (q || terms.length > 0) &&
+          (get().searchResults.length === 0 || (mode === 'exact' && terms.length > 0));
+        if (shouldSearch) {
           setTimeout(() => get().search(), 0);
         }
       },
@@ -589,31 +652,62 @@ const useStore = create<AppState>()(
       },
 
       search: () => {
-        const { pageTextContents, searchQuery, searchMode, caseSensitive, isExtracting } = get();
-        const query = searchQuery.trim();
-        if (!query) {
-          set({ searchResults: [], currentResultIndex: -1 });
-          return;
-        }
+        const { pageTextContents, searchQuery, searchMode, caseSensitive, isExtracting, searchTerms } = get();
 
         if (searchMode === 'exact') {
-          // Yield to main thread before heavy search to prevent UI freezing on large documents
+          // Multi-term search: use searchTerms if available, fallback to searchQuery
+          const terms = searchTerms.length > 0
+            ? searchTerms
+            : searchQuery.trim()
+              ? [{ id: 'single', term: searchQuery.trim(), color: SEARCH_TERM_COLORS[0] }]
+              : [];
+
+          if (terms.length === 0) {
+            set({ searchResults: [], currentResultIndex: -1 });
+            return;
+          }
+
           set({ isSearching: true });
           setTimeout(() => {
-            const results = exactSearch(pageTextContents, query, caseSensitive);
+            const allResults: SearchResult[] = [];
+            for (const st of terms) {
+              const results = exactSearch(pageTextContents, st.term, caseSensitive);
+              for (const r of results) {
+                r.termColor = st.color;
+                r.termLabel = st.term;
+              }
+              allResults.push(...results);
+            }
+            // Sort by page, then by position within page
+            allResults.sort((a, b) => a.page - b.page || a.itemIndex - b.itemIndex);
+            // Deduplicate overlapping results (same id from different terms)
+            const seen = new Set<string>();
+            const deduped = allResults.filter((r) => {
+              const key = `${r.id}-${r.termLabel}`;
+              if (seen.has(key)) return false;
+              seen.add(key);
+              return true;
+            });
+
+            const termsKey = terms.map((t) => t.term).join(',');
             const prevIndex = get().currentResultIndex;
             const prevResults = get().searchResults;
-            const isReSearch = prevResults.length > 0 && query === get().lastSearchedQuery;
-            const newIndex = isReSearch && prevIndex >= 0 && prevIndex < results.length
+            const isReSearch = prevResults.length > 0 && termsKey === get().lastSearchedQuery;
+            const newIndex = isReSearch && prevIndex >= 0 && prevIndex < deduped.length
               ? prevIndex
-              : results.length > 0 ? 0 : -1;
-            set({ searchResults: results, currentResultIndex: newIndex, lastSearchedQuery: query, isSearching: false });
-            if (results.length > 0 && !isReSearch) {
-              set({ currentPage: results[0].page });
+              : deduped.length > 0 ? 0 : -1;
+            set({ searchResults: deduped, currentResultIndex: newIndex, lastSearchedQuery: termsKey, isSearching: false });
+            if (deduped.length > 0 && !isReSearch) {
+              set({ currentPage: deduped[0].page });
               if (typeof window !== 'undefined' && window.innerWidth < 1024) set({ isSidebarOpen: true });
             }
           }, 0);
         } else if (searchMode === 'semantic') {
+          const query = searchQuery.trim();
+          if (!query) {
+            set({ searchResults: [], currentResultIndex: -1 });
+            return;
+          }
           // Block semantic search while still extracting text
           if (isExtracting) {
             const extractedPages = pageTextContents.length;
@@ -879,7 +973,7 @@ const useStore = create<AppState>()(
 
       clearSearch: () => {
         if (semanticAbortController) { semanticAbortController.abort(); semanticAbortController = null; }
-        set({ searchQuery: '', lastSearchedQuery: '', searchResults: [], currentResultIndex: -1, embeddingProgress: null, isEmbedding: false, isSearching: false, pendingSemanticRetry: false });
+        set({ searchQuery: '', lastSearchedQuery: '', searchResults: [], currentResultIndex: -1, embeddingProgress: null, isEmbedding: false, isSearching: false, pendingSemanticRetry: false, searchTerms: [] });
       },
 
       nextResult: () => {
@@ -948,6 +1042,21 @@ const useStore = create<AppState>()(
       translate: async (text) => {
         if (!text.trim()) return;
 
+        // Block Korean→Korean translation
+        if (isKoreanText(text)) {
+          set({
+            selectedText: text,
+            showTranslation: true,
+            translationResult: '',
+            isTranslating: false,
+            isTranslationError: true,
+            translationErrorCode: 'ALREADY_KOREAN',
+            translationErrorDetail: '',
+          });
+          showToastSafe('이미 한국어 텍스트입니다.', 'info');
+          return;
+        }
+
         // Quota pre-check: if server reports 100% used, block
         const quota = get().translateQuota;
         if (quota && quota.usedPercent >= 100) {
@@ -1000,6 +1109,167 @@ const useStore = create<AppState>()(
         }
       },
 
+      addSearchTerm: (term) => {
+        const trimmed = term.trim();
+        if (!trimmed) return;
+        const { searchTerms, caseSensitive } = get();
+        // Don't add duplicates (respect case sensitivity setting)
+        const isDuplicate = caseSensitive
+          ? searchTerms.some((t) => t.term === trimmed)
+          : searchTerms.some((t) => t.term.toLowerCase() === trimmed.toLowerCase());
+        if (isDuplicate) return;
+        const color = SEARCH_TERM_COLORS[searchTerms.length % SEARCH_TERM_COLORS.length];
+        const newTerm: SearchTerm = { id: `st-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, term: trimmed, color };
+        set({ searchTerms: [...searchTerms, newTerm], searchQuery: '' });
+        // Auto-search after adding
+        setTimeout(() => get().search(), 0);
+      },
+
+      removeSearchTerm: (id) => {
+        const { searchTerms } = get();
+        const updated = searchTerms.filter((t) => t.id !== id);
+        set({ searchTerms: updated });
+        if (updated.length > 0) {
+          setTimeout(() => get().search(), 0);
+        } else {
+          set({ searchResults: [], currentResultIndex: -1 });
+        }
+      },
+
+      clearSearchTerms: () => {
+        set({ searchTerms: [], searchResults: [], currentResultIndex: -1, searchQuery: '' });
+      },
+
+      extractAllKeywords: () => {
+        const { pageTextContents, isExtractingKeywords } = get();
+        if (isExtractingKeywords || pageTextContents.length === 0) return;
+        set({ isExtractingKeywords: true, keywordProgress: { current: 0, total: 3 } });
+
+        (async () => {
+          try {
+            // Sequential extraction with progress updates
+            const { extractKeywordsByAlgorithm } = await import('@/lib/keywordExtractor');
+            const cache: Record<string, ExtractedKeyword[]> = {};
+            const algos: Array<'tfidf' | 'textrank' | 'ngram'> = ['tfidf', 'textrank', 'ngram'];
+            for (let i = 0; i < algos.length; i++) {
+              cache[algos[i]] = await extractKeywordsByAlgorithm(pageTextContents, algos[i]);
+              set({ keywordProgress: { current: i + 1, total: 3 } });
+            }
+            const algo = get().keywordAlgorithm;
+            const active = algo === 'user' ? get().userKeywords : (cache[algo] || []);
+            set({
+              allKeywords: cache,
+              keywords: active,
+              isExtractingKeywords: false,
+              keywordProgress: null,
+            });
+          } catch {
+            set({ isExtractingKeywords: false, keywordProgress: null });
+          }
+        })();
+      },
+
+      setKeywordAlgorithm: (algo) => {
+        const { allKeywords, userKeywords } = get();
+        const keywords = algo === 'user' ? userKeywords : (allKeywords[algo] || null);
+        set({ keywordAlgorithm: algo, keywords });
+      },
+
+      toggleKeywordHighlight: (term) => {
+        const prev = get().activeKeywords;
+        const idx = prev.indexOf(term);
+        const next = idx >= 0 ? prev.filter((t) => t !== term) : [...prev, term];
+        set({ activeKeywords: next });
+      },
+
+      addUserKeyword: (term) => {
+        const trimmed = term.trim().toLowerCase();
+        if (!trimmed) return;
+        const { userKeywords, pageTextContents, keywordAlgorithm } = get();
+        if (userKeywords.some((k) => k.term === trimmed)) return;
+
+        // Compute occurrence stats from page text contents
+        let frequency = 0;
+        let totalWords = 0;
+        const pages: number[] = [];
+        const contexts: { page: number; snippet: string; itemIndex: number }[] = [];
+
+        const kwTokens = trimmed.split(/\s+/);
+        const isMultiWord = kwTokens.length > 1;
+
+        for (const page of pageTextContents) {
+          const re = /[\p{L}\p{N}]+(?:[-'][\p{L}\p{N}]+)*/gu;
+          const tokens: string[] = [];
+          let m;
+          while ((m = re.exec(page.fullText)) !== null) tokens.push(m[0].toLowerCase());
+          totalWords += tokens.length;
+
+          let found = false;
+          if (isMultiWord) {
+            // Multi-word: count consecutive token matches (skipping stopwords not needed here)
+            for (let i = 0; i <= tokens.length - kwTokens.length; i++) {
+              let match = true;
+              for (let j = 0; j < kwTokens.length; j++) {
+                if (tokens[i + j] !== kwTokens[j]) { match = false; break; }
+              }
+              if (match) { frequency++; found = true; }
+            }
+          } else {
+            for (const t of tokens) {
+              if (t === trimmed) { frequency++; found = true; }
+            }
+          }
+          if (found) pages.push(page.page);
+
+          if (contexts.length < 3) {
+            for (const item of page.items) {
+              if (contexts.length >= 3) break;
+              if (item.text.toLowerCase().includes(trimmed)) {
+                contexts.push({ page: page.page, snippet: item.text.slice(0, 120), itemIndex: item.itemIndex });
+              }
+            }
+          }
+        }
+
+        const newKeyword: ExtractedKeyword = {
+          term: trimmed,
+          score: 1,
+          frequency,
+          frequencyPercent: totalWords > 0 ? (frequency / totalWords) * 100 : 0,
+          pages,
+          contexts,
+          algorithm: 'user',
+          color: `hsl(${(userKeywords.length * 137.5) % 360}, 70%, 55%)`,
+        };
+
+        const updated = [...userKeywords, newKeyword];
+        const patch: Partial<AppState> = { userKeywords: updated };
+        if (keywordAlgorithm === 'user') patch.keywords = updated;
+        set(patch);
+      },
+
+      removeUserKeyword: (term) => {
+        const { userKeywords, keywordAlgorithm, activeKeywords } = get();
+        const updated = userKeywords.filter((k) => k.term !== term);
+        const next = activeKeywords.filter((t) => t !== term);
+        const patch: Partial<AppState> = { userKeywords: updated, activeKeywords: next };
+        if (keywordAlgorithm === 'user') patch.keywords = updated;
+        set(patch);
+      },
+
+      setSidebarTab: (tab) => set({ sidebarTab: tab }),
+
+      clearKeywords: () => {
+        set({
+          keywords: null,
+          allKeywords: {},
+          activeKeywords: [],
+          userKeywords: [],
+          isExtractingKeywords: false,
+          keywordProgress: null,
+        });
+      },
+
       setViewerMode: (mode) => set({ viewerMode: mode }),
       toggleViewerMode: () => set((s) => ({ viewerMode: s.viewerMode === 'scroll' ? 'page' : 'scroll' })),
 
@@ -1024,7 +1294,18 @@ const useStore = create<AppState>()(
         if (semanticAbortController) { semanticAbortController.abort(); semanticAbortController = null; }
         clearQuotaTimers();
         const { hasSeenTutorial, dailyUsage, viewerMode } = get();
-        set({ ...initialState, hasSeenTutorial, dailyUsage, viewerMode });
+        set({
+          ...initialState,
+          hasSeenTutorial,
+          dailyUsage,
+          viewerMode,
+          keywords: null,
+          allKeywords: {},
+          activeKeywords: [],
+          userKeywords: [],
+          isExtractingKeywords: false,
+          keywordProgress: null,
+        });
       },
     }),
     {
@@ -1033,6 +1314,7 @@ const useStore = create<AppState>()(
         hasSeenTutorial: state.hasSeenTutorial,
         dailyUsage: state.dailyUsage,
         viewerMode: state.viewerMode,
+        sidebarTab: state.sidebarTab,
       }),
     }
   )

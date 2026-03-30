@@ -49,6 +49,8 @@ export function getTranslationErrorMessage(code: TranslationErrorCode, detail?: 
       return '요청 시간이 초과되었습니다. 다시 시도해주세요.';
     case 'NETWORK_ERROR':
       return '네트워크 오류가 발생했습니다. 인터넷 연결을 확인해주세요.';
+    case 'ALREADY_KOREAN':
+      return '이미 한국어 텍스트입니다. 영어 텍스트를 선택해주세요.';
     default:
       return '알 수 없는 오류가 발생했습니다.';
   }

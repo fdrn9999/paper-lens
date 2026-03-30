@@ -33,6 +33,13 @@ const GUIDE_STEPS = [
     position: 'top' as const,
   },
   {
+    title: '🏷️ 키워드 자동 추출',
+    content:
+      'PDF 업로드 시 자동으로 핵심 키워드를 추출합니다.\n카드를 클릭하면 PDF에서 해당 키워드가\n색상으로 하이라이트됩니다.',
+    target: '[data-guide="keyword-tab"]',
+    position: 'bottom' as const,
+  },
+  {
     title: '📖 뷰어 모드',
     content: '__VIEWER_MODE__',
     target: '[data-guide="viewer-mode"]',

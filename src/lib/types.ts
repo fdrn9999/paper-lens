@@ -33,6 +33,10 @@ export interface SearchResult {
   semantic?: boolean;
   /** Relevance score 0-1 for semantic results */
   relevanceScore?: number;
+  /** Color for this search term's highlights (multi-term search) */
+  termColor?: string;
+  /** Label identifying which search term matched */
+  termLabel?: string;
 }
 
 /**
@@ -69,4 +73,30 @@ export type TranslationErrorCode =
   | 'SERVER_ERROR'
   | 'API_ERROR'
   | 'TIMEOUT'
-  | 'NETWORK_ERROR';
+  | 'NETWORK_ERROR'
+  | 'ALREADY_KOREAN';
+
+export interface SearchTerm {
+  id: string;
+  term: string;
+  color: string;
+}
+
+export type KeywordAlgorithm = 'tfidf' | 'textrank' | 'ngram' | 'user';
+
+export interface KeywordContext {
+  page: number;
+  snippet: string;
+  itemIndex: number;
+}
+
+export interface ExtractedKeyword {
+  term: string;
+  score: number;
+  frequency: number;
+  frequencyPercent: number;
+  pages: number[];
+  contexts: KeywordContext[];
+  algorithm: KeywordAlgorithm;
+  color: string;
+}

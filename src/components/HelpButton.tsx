@@ -117,8 +117,26 @@ export default function HelpButton() {
                 사용 제한
               </h4>
               <div className="text-xs text-gray-600 space-y-1">
-                <p>AI 검색: 일일 20회 / 번역: 일일 50회</p>
-                <p className="text-gray-400">제한은 매일 자정에 초기화됩니다.</p>
+                <p>AI 검색과 번역은 글자 수 기반 일일 사용량이 제한됩니다. 사용량은 헤더의 사용량 버튼에서 퍼센트로 확인할 수 있습니다.</p>
+                <p className="text-gray-400">제한은 매일 자정(UTC)에 초기화됩니다.</p>
+              </div>
+            </section>
+
+            {/* Keyword extraction */}
+            <section>
+              <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-1.5">
+                <span className="w-5 h-5 rounded bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold">5</span>
+                키워드 자동 추출
+              </h4>
+              <div className="text-xs text-gray-600 space-y-1.5">
+                <p>사이드바의 <strong>&lsquo;키워드&rsquo;</strong> 탭으로 전환하면 PDF에서 자동 추출된 핵심 키워드를 확인할 수 있습니다.</p>
+                <div className="space-y-1 pl-2 border-l-2 border-blue-100">
+                  <p><strong>TF-IDF</strong> — 문서 내 빈도 기반 핵심 용어 추출</p>
+                  <p><strong>TextRank</strong> — 단어 간 관계 그래프 기반 추출</p>
+                  <p><strong>N-gram</strong> — 복합 명사/구문 패턴 추출</p>
+                </div>
+                <p>키워드 카드를 클릭하면 PDF에서 해당 키워드가 고유 색상으로 하이라이트됩니다.</p>
+                <p className="text-gray-400">&lsquo;사용자&rsquo; 탭에서 키워드를 직접 추가할 수도 있습니다.</p>
               </div>
             </section>
           </div>

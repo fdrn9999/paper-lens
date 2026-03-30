@@ -37,6 +37,8 @@ export default memo(function PDFViewer() {
   const selectedText = useStore((s) => s.selectedText);
   const reset = useStore((s) => s.reset);
   const viewerMode = useStore((s) => s.viewerMode);
+  const activeKeywords = useStore((s) => s.activeKeywords);
+  const keywords = useStore((s) => s.keywords);
 
   const [floatingBtn, setFloatingBtn] = useState<{ x: number; y: number } | null>(null);
   const scrollStartRef = useRef<number | null>(null);
@@ -50,6 +52,10 @@ export default memo(function PDFViewer() {
   useEffect(() => { currentPageRef.current = currentPage; }, [currentPage]);
   const searchResultsRef = useRef(searchResults);
   useEffect(() => { searchResultsRef.current = searchResults; }, [searchResults]);
+  const activeKeywordsRef = useRef(activeKeywords);
+  useEffect(() => { activeKeywordsRef.current = activeKeywords; }, [activeKeywords]);
+  const keywordsRef = useRef(keywords);
+  useEffect(() => { keywordsRef.current = keywords; }, [keywords]);
   const scrollScaleRef = useRef(scale);
   useEffect(() => { scrollScaleRef.current = scale; }, [scale]);
 
@@ -403,7 +409,10 @@ export default memo(function PDFViewer() {
         div.className = result.semantic ? 'highlight-mark semantic' : 'highlight-mark';
         div.dataset.resultId = result.id;
         const vInset = Math.max(wordHeight * 0.12, 1);
-        div.style.cssText = `left:${wordLeft}px;top:${wordTop + vInset}px;width:${Math.max(wordWidth, 8)}px;height:${Math.max(wordHeight - vInset * 2, 4)}px;`;
+        const bgStyle = result.termColor && !result.semantic
+          ? `background-color:${result.termColor}66;`
+          : '';
+        div.style.cssText = `left:${wordLeft}px;top:${wordTop + vInset}px;width:${Math.max(wordWidth, 8)}px;height:${Math.max(wordHeight - vInset * 2, 4)}px;${bgStyle}`;
         hl.appendChild(div);
       }
     }
@@ -424,6 +433,9 @@ export default memo(function PDFViewer() {
       const el = mark as HTMLElement;
       if (el.dataset.resultId === currentId) {
         el.classList.add('current');
+        // Override inline background-color so CSS .current orange shows through
+        el.dataset.origBg = el.style.backgroundColor || '';
+        el.style.backgroundColor = '';
         if (!scrolled) {
           scrolled = true;
           requestAnimationFrame(() => {
@@ -432,6 +444,8 @@ export default memo(function PDFViewer() {
         }
       } else {
         el.classList.remove('current');
+        el.style.backgroundColor = el.dataset.origBg ?? '';
+        delete el.dataset.origBg;
       }
     });
   }, [currentResultIndex, searchResults, pageReady, viewerMode]);
@@ -524,11 +538,114 @@ export default memo(function PDFViewer() {
         div.className = result.semantic ? 'highlight-mark semantic' : 'highlight-mark';
         div.dataset.resultId = result.id;
         const vInset = Math.max(wordHeight * 0.12, 1);
-        div.style.cssText = `left:${wordLeft}px;top:${wordTop + vInset}px;width:${Math.max(wordWidth, 8)}px;height:${Math.max(wordHeight - vInset * 2, 4)}px;`;
+        const bgStyle = result.termColor && !result.semantic
+          ? `background-color:${result.termColor}66;`
+          : '';
+        div.style.cssText = `left:${wordLeft}px;top:${wordTop + vInset}px;width:${Math.max(wordWidth, 8)}px;height:${Math.max(wordHeight - vInset * 2, 4)}px;${bgStyle}`;
         hlLayer.appendChild(div);
       }
     }
   }, []);
+
+  // Helper: render keyword highlights on a wrapper element (shared by both modes)
+  const renderKeywordHighlightsOnWrapper = useCallback((wrapper: HTMLElement, textLayer: HTMLElement) => {
+    // Remove existing keyword highlights
+    const existing = wrapper.querySelector('.pdf-keyword-highlight-layer');
+    if (existing) existing.remove();
+
+    const active = activeKeywordsRef.current;
+    const kws = keywordsRef.current;
+    if (!active || active.length === 0 || !kws) return;
+
+    const activeSet = new Set(active);
+    const colorMap = new Map<string, string>();
+    for (const kw of kws) {
+      if (activeSet.has(kw.term)) colorMap.set(kw.term.toLowerCase(), kw.color);
+    }
+    if (colorMap.size === 0) return;
+
+    const kwLayer = document.createElement('div');
+    kwLayer.className = 'pdf-keyword-highlight-layer';
+    kwLayer.style.cssText = 'position:absolute;left:0;top:0;right:0;bottom:0;pointer-events:none;z-index:1;';
+
+    const spans = textLayer.querySelectorAll('span[data-item-index]');
+    const tokenRe = /[\p{L}\p{N}]+(?:[-'][\p{L}\p{N}]+)*/gu;
+
+    spans.forEach((spanEl) => {
+      const span = spanEl as HTMLElement;
+      const text = span.textContent || '';
+      if (!text) return;
+      const textLower = text.toLowerCase();
+
+      for (const [term, color] of colorMap) {
+        if (term.includes(' ')) {
+          let pos = 0;
+          while ((pos = textLower.indexOf(term, pos)) !== -1) {
+            createKwMark(span, wrapper, pos, pos + term.length, color, kwLayer);
+            pos += 1;
+          }
+        } else {
+          tokenRe.lastIndex = 0;
+          let m;
+          while ((m = tokenRe.exec(text)) !== null) {
+            if (m[0].toLowerCase() === term) {
+              createKwMark(span, wrapper, m.index, m.index + m[0].length, color, kwLayer);
+            }
+          }
+        }
+      }
+    });
+
+    if (kwLayer.childElementCount > 0) wrapper.appendChild(kwLayer);
+  }, []);
+
+  function createKwMark(
+    span: HTMLElement, wrapper: HTMLElement,
+    charStart: number, charEnd: number,
+    color: string, layer: HTMLElement,
+  ) {
+    const text = span.textContent || '';
+    let wordLeft = span.offsetLeft, wordTop = span.offsetTop;
+    let wordWidth = span.offsetWidth, wordHeight = span.offsetHeight;
+
+    const textNode = span.firstChild;
+    if (textNode && textNode.nodeType === Node.TEXT_NODE && text.length > 0 && charEnd <= text.length) {
+      try {
+        const range = document.createRange();
+        range.setStart(textNode, charStart);
+        range.setEnd(textNode, charEnd);
+        const rects = range.getClientRects();
+        if (rects.length > 0) {
+          const wrapperRect = wrapper.getBoundingClientRect();
+          const rect = rects[0];
+          wordLeft = rect.left - wrapperRect.left;
+          wordTop = rect.top - wrapperRect.top;
+          wordWidth = rect.width;
+          wordHeight = rect.height;
+        }
+      } catch {
+        const charW = span.offsetWidth / Math.max(text.length, 1);
+        wordLeft = span.offsetLeft + charStart * charW;
+        wordWidth = (charEnd - charStart) * charW;
+      }
+    }
+
+    const div = document.createElement('div');
+    div.className = 'highlight-mark keyword';
+    const vInset = Math.max(wordHeight * 0.12, 1);
+    div.style.cssText = `left:${wordLeft}px;top:${wordTop + vInset}px;width:${Math.max(wordWidth, 4)}px;height:${Math.max(wordHeight - vInset * 2, 4)}px;background-color:${color}40;border-bottom:2px solid ${color};`;
+    layer.appendChild(div);
+  }
+
+  // ===== Effect 4c: Keyword highlights (PAGE MODE) =====
+  useEffect(() => {
+    if (viewerMode !== 'page') return;
+    if (!pageReady) return;
+    const pd = pageDataRef.current;
+    const textLayer = textLayerDivRef.current;
+    if (!pd || !textLayer) return;
+    renderKeywordHighlightsOnWrapper(pd.wrapper, textLayer);
+  }, [viewerMode, pageReady, activeKeywords, keywords, scale, currentPage, renderKeywordHighlightsOnWrapper]);
 
   // Render a single page in scroll mode (imperative, uses refs for latest values)
   const renderScrollPageRef = useRef<(pageNum: number) => Promise<void>>(async () => {});
@@ -600,6 +717,10 @@ export default memo(function PDFViewer() {
       wrapper.appendChild(hlDiv);
 
       updateScrollHighlightsForPage(pageNum);
+
+      // Also render keyword highlights for this page
+      const kwTextLayer = wrapper.querySelector('.textLayer') as HTMLElement;
+      if (kwTextLayer) renderKeywordHighlightsOnWrapper(wrapper, kwTextLayer);
     } catch {
       renderedScrollPagesRef.current.delete(pageNum);
     }
@@ -703,6 +824,8 @@ export default memo(function PDFViewer() {
       const el = mark as HTMLElement;
       if (el.dataset.resultId === currentId) {
         el.classList.add('current');
+        el.dataset.origBg = el.style.backgroundColor || '';
+        el.style.backgroundColor = '';
         if (!scrolled) {
           scrolled = true;
           requestAnimationFrame(() => {
@@ -711,9 +834,23 @@ export default memo(function PDFViewer() {
         }
       } else {
         el.classList.remove('current');
+        el.style.backgroundColor = el.dataset.origBg ?? '';
+        delete el.dataset.origBg;
       }
     });
   }, [viewerMode, currentResultIndex, searchResults]);
+
+  // Update keyword highlights in scroll mode
+  useEffect(() => {
+    if (viewerMode !== 'scroll') return;
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    renderedScrollPagesRef.current.forEach((pageNum) => {
+      const wrapper = container.querySelector(`[data-page="${pageNum}"]`) as HTMLElement;
+      const textLayer = wrapper?.querySelector('.textLayer') as HTMLElement;
+      if (wrapper && textLayer) renderKeywordHighlightsOnWrapper(wrapper, textLayer);
+    });
+  }, [viewerMode, activeKeywords, keywords, renderKeywordHighlightsOnWrapper]);
 
   // ===================================================================
   // ===== TEXT SELECTION (shared, mode-aware) =====
@@ -721,8 +858,10 @@ export default memo(function PDFViewer() {
 
   const handleMouseUp = useCallback((e: React.MouseEvent) => {
     const sel = window.getSelection();
-    const text = sel?.toString().trim();
-    const anchor = sel?.anchorNode;
+    if (!sel || sel.rangeCount === 0) { setFloatingBtn(null); return; }
+    const rawText = sel.toString();
+    const text = rawText.replace(/^\s+|\s+$/g, '');
+    const anchor = sel.anchorNode;
     const contentContainer = viewerMode === 'scroll'
       ? scrollContainerRef.current
       : canvasContainerRef.current;
@@ -762,29 +901,30 @@ export default memo(function PDFViewer() {
       if (selDebounce) clearTimeout(selDebounce);
       selDebounce = setTimeout(() => {
         const sel = window.getSelection();
-        const text = sel?.toString().trim();
-        const anchor = sel?.anchorNode;
-        if (text && text.length > 0 && anchor && container.contains(anchor)) {
-          setSelectedText(text);
-          const range = sel?.getRangeAt(0);
-          if (range) {
-            const scrollContainer = viewerMode === 'scroll'
-              ? scrollContainerRef.current
-              : container.parentElement;
-            if (scrollContainer) {
-              const rangeRect = range.getBoundingClientRect();
-              const containerRect = scrollContainer.getBoundingClientRect();
-              const x = Math.min(
-                Math.max(rangeRect.left - containerRect.left + scrollContainer.scrollLeft, 10),
-                scrollContainer.scrollLeft + scrollContainer.clientWidth - 100
-              );
-              const y = Math.max(rangeRect.top - containerRect.top + scrollContainer.scrollTop - 45, 10);
-              setFloatingBtn({ x, y });
-              scrollStartRef.current = scrollContainer.scrollTop;
-            }
+        if (!sel || sel.rangeCount === 0) return;
+        const text = sel.toString();
+        // Preserve meaningful whitespace but trim leading/trailing
+        const trimmed = text.replace(/^\s+|\s+$/g, '');
+        const anchor = sel.anchorNode;
+        if (trimmed && trimmed.length > 0 && anchor && container.contains(anchor)) {
+          setSelectedText(trimmed);
+          const range = sel.getRangeAt(0);
+          const scrollContainer = viewerMode === 'scroll'
+            ? scrollContainerRef.current
+            : container.parentElement;
+          if (scrollContainer) {
+            const rangeRect = range.getBoundingClientRect();
+            const containerRect = scrollContainer.getBoundingClientRect();
+            const x = Math.min(
+              Math.max(rangeRect.left - containerRect.left + scrollContainer.scrollLeft, 10),
+              scrollContainer.scrollLeft + scrollContainer.clientWidth - 100
+            );
+            const y = Math.max(rangeRect.top - containerRect.top + scrollContainer.scrollTop - 45, 10);
+            setFloatingBtn({ x, y });
+            scrollStartRef.current = scrollContainer.scrollTop;
           }
         }
-      }, 150);
+      }, 200);
     };
 
     document.addEventListener('selectionchange', handleSelectionChange);

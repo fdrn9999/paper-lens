@@ -6,10 +6,12 @@ import FileUploader from '@/components/FileUploader';
 import PDFViewer from '@/components/PDFViewer';
 import SearchBar from '@/components/SearchBar';
 import ResultList from '@/components/ResultList';
+import KeywordPanel from '@/components/KeywordPanel';
 import PageNavigator from '@/components/PageNavigator';
 import TranslationPanel from '@/components/TranslationPanel';
 import GuideOverlay from '@/components/GuideOverlay';
 import HelpButton from '@/components/HelpButton';
+import UsageButton from '@/components/UsageButton';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import ToastContainer from '@/components/Toast';
 
@@ -26,6 +28,8 @@ export default function Home() {
   const setCurrentPage = useStore((s) => s.setCurrentPage);
   const setShowTranslation = useStore((s) => s.setShowTranslation);
   const viewerMode = useStore((s) => s.viewerMode);
+  const sidebarTab = useStore((s) => s.sidebarTab);
+  const setSidebarTab = useStore((s) => s.setSidebarTab);
 
   // Auto-start guide for first-time users after PDF loads
   useEffect(() => {
@@ -234,8 +238,9 @@ export default function Home() {
           {/* Spacer pushes HelpButton to right edge on mobile top row */}
           <div className="flex-1 sm:hidden" />
 
-          {/* HelpButton in mobile top row */}
-          <div className="sm:hidden">
+          {/* HelpButton + UsageButton in mobile top row */}
+          <div className="sm:hidden flex items-center gap-1">
+            <UsageButton />
             <HelpButton />
           </div>
         </div>
@@ -245,8 +250,9 @@ export default function Home() {
           <SearchBar />
         </div>
 
-        {/* HelpButton for sm+ (hidden on mobile, shown in top row instead) */}
-        <div className="hidden sm:block shrink-0">
+        {/* HelpButton + UsageButton for sm+ (hidden on mobile, shown in top row instead) */}
+        <div className="hidden sm:flex items-center gap-1 shrink-0">
+          <UsageButton />
           <HelpButton />
         </div>
       </header>
@@ -272,12 +278,40 @@ export default function Home() {
             ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
           `}
         >
-          {/* Sidebar header (mobile + tablet) */}
-          <div className="flex items-center justify-between px-3 py-2 border-b lg:hidden">
-            <span className="text-sm font-medium text-gray-700">검색 결과</span>
+          {/* Sidebar header with tabs */}
+          <div className="flex items-center border-b shrink-0">
+            <button
+              onClick={() => setSidebarTab('search')}
+              className={`flex-1 px-3 py-2 text-sm font-medium transition-colors relative ${
+                sidebarTab === 'search' ? 'text-blue-600' : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              검색 결과
+              {searchResults.length > 0 && (
+                <span className="ml-1 text-[10px] bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded-full">
+                  {searchResults.length > 99 ? '99+' : searchResults.length}
+                </span>
+              )}
+              {sidebarTab === 'search' && (
+                <div className="absolute bottom-0 left-2 right-2 h-0.5 bg-blue-600 rounded-full" />
+              )}
+            </button>
+            <button
+              onClick={() => setSidebarTab('keywords')}
+              data-guide="keyword-tab"
+              className={`flex-1 px-3 py-2 text-sm font-medium transition-colors relative ${
+                sidebarTab === 'keywords' ? 'text-blue-600' : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              키워드
+              {sidebarTab === 'keywords' && (
+                <div className="absolute bottom-0 left-2 right-2 h-0.5 bg-blue-600 rounded-full" />
+              )}
+            </button>
+            {/* Close button (mobile + tablet) */}
             <button
               onClick={() => setIsSidebarOpen(false)}
-              className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded hover:bg-gray-100"
+              className="lg:hidden min-w-[44px] min-h-[44px] flex items-center justify-center rounded hover:bg-gray-100 shrink-0"
               aria-label="사이드바 닫기"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -285,7 +319,7 @@ export default function Home() {
               </svg>
             </button>
           </div>
-          <ResultList />
+          {sidebarTab === 'search' ? <ResultList /> : <KeywordPanel />}
         </aside>
 
         {/* Main - PDF Viewer */}

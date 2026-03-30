@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  AI 기반 PDF 논문 탐색 도구 &mdash; 키워드 검색, 의미 기반 AI 검색, 드래그 번역까지 한 곳에서
+  AI 기반 PDF 논문 탐색 도구 &mdash; 다중 키워드 색상 검색, 키워드 자동 추출, 의미 기반 AI 검색, 드래그 번역까지 한 곳에서
 </p>
 
 <p align="center">
@@ -30,21 +30,26 @@
 
 | 기능 | 설명 |
 |------|------|
-| **PDF 업로드** | 드래그 앤 드롭으로 논문 업로드 (최대 10MB) |
+| **PDF 업로드** | 드래그 앤 드롭 또는 클릭으로 논문 업로드 (최대 10MB) |
+| **다중 키워드 색상 검색** | 여러 검색어를 등록하여 각각 고유 색상으로 PDF 하이라이트 — 최대 10색 동시 표시 |
+| **키워드 자동 추출** | TF-IDF, TextRank, N-gram 3가지 알고리즘으로 핵심 키워드 자동 추출 (100% 로컬 처리) |
 | **Exact 검색** | 토큰 기반 정확한 단어 매칭 — 한글/영문 지원, 부분 문자열 제거 |
-| **AI 시맨틱 검색** | Gemini Embedding으로 의미 기반 검색 ("AI" 검색 시 "Artificial Intelligence"도 매칭) |
-| **드래그 번역** | 텍스트 선택 후 Gemini Flash로 즉시 한국어 번역 |
-| **하이라이트** | 검색 결과 위치 하이라이트 + 결과 간 탐색 (이전/다음) |
-| **반응형 디자인** | 데스크톱 / 모바일 대응 |
+| **AI 시맨틱 검색** | Gemini Embedding으로 의미 기반 하이브리드 검색 (exact + semantic RRF 병합, MMR 중복 제거) |
+| **드래그 번역** | 텍스트 선택 후 Gemini Flash로 즉시 한국어 번역 (한국어 텍스트 자동 감지 및 차단) |
+| **키워드 하이라이트** | 추출된 키워드를 PDF에서 고유 색상으로 하이라이트 (여러 키워드 동시 표시) |
+| **사용자 키워드** | 수동으로 키워드를 추가하여 출현 통계 + PDF 하이라이트 확인 |
+| **사용량 대시보드** | 헤더에서 AI 검색/번역 사용량을 실시간 퍼센트로 확인 |
+| **반응형 디자인** | 데스크톱 / 모바일 대응, 핀치 줌 지원 |
 
 ## 검색이 다릅니다
 
 기존 PDF 뷰어의 `Ctrl+F`는 단순 문자열 매칭이라 "ai"를 검색하면 cl**ai**m, s**ai**d 같은 불필요한 결과가 포함됩니다.
 
-PaperLens는 **두 가지 검색 레벨**로 이 문제를 해결합니다:
+PaperLens는 **세 가지 검색 레벨**로 이 문제를 해결합니다:
 
 - **Level 1 — Exact Match**: 단어 경계를 인식하는 토큰 기반 검색으로 정확한 단어만 매칭
-- **Level 2 — AI Semantic Search**: 문장 단위 임베딩을 비교하여 동의어/유사 표현까지 탐색
+- **Level 2 — Multi-Term Color Search**: 여러 검색어를 동시에 등록하고, 각 검색어를 고유 색상으로 PDF에 하이라이트하여 한눈에 비교
+- **Level 3 — AI Semantic Search**: 문장 단위 임베딩을 비교하여 동의어/유사 표현까지 탐색
 
 ## 기술 스택
 
@@ -54,12 +59,18 @@ PaperLens는 **두 가지 검색 레벨**로 이 문제를 해결합니다:
 | 상태 관리 | Zustand |
 | PDF 렌더링 | pdfjs-dist (CDN) |
 | AI | Gemini 3.0 Flash (번역), Gemini text-embedding-004 (시맨틱 검색) |
+| 키워드 추출 | TF-IDF, TextRank, N-gram CNN (브라우저 로컬 처리) |
 | 배포 | Vercel Serverless Functions |
 
 ## 시스템 아키텍처
 
 ```
 [Client — Next.js App Router]
+   ├── PDF 렌더링 (pdfjs-dist CDN)
+   ├── 텍스트 추출 (로컬)
+   ├── 키워드 추출 (로컬, 3가지 알고리즘)
+   ├── Exact 검색 (로컬)
+   └── 다중 검색어 색상 관리
         |
 [Vercel Serverless Functions]
    ├── /api/embed      → 문장 임베딩 생성
@@ -81,7 +92,7 @@ PaperLens는 **두 가지 검색 레벨**로 이 문제를 해결합니다:
 
 ```bash
 # 클론
-git clone https://github.com/your-username/paperlens.git
+git clone https://github.com/fdrn9999/paperlens.git
 cd paperlens
 
 # 의존성 설치
@@ -117,14 +128,16 @@ src/
 │       ├── translate/route.ts  # Gemini 번역 API
 │       └── embed/route.ts      # Gemini 임베딩 API
 ├── components/
-│   ├── FileUploader.tsx        # PDF 업로드 (드래그 앤 드롭)
-│   ├── PDFViewer.tsx           # PDF 렌더링 + 하이라이트
-│   ├── SearchBar.tsx           # 검색 입력 + 모드 토글
-│   ├── ResultList.tsx          # 검색 결과 리스트
+│   ├── FileUploader.tsx        # PDF 업로드 (클릭 + 드래그 앤 드롭)
+│   ├── PDFViewer.tsx           # PDF 렌더링 + 색상별 하이라이트
+│   ├── SearchBar.tsx           # 다중 검색어 칩 입력 + 모드 토글
+│   ├── ResultList.tsx          # 검색 결과 리스트 + 검색어 색상 배지
+│   ├── KeywordPanel.tsx        # 키워드 추출 결과 패널
 │   ├── PageNavigator.tsx       # 페이지 탐색 + 줌
 │   ├── TranslationPanel.tsx    # 번역 결과 패널
 │   ├── GuideOverlay.tsx        # 온보딩 가이드
 │   ├── HelpButton.tsx          # 도움말 버튼
+│   ├── UsageButton.tsx         # 사용량 표시 버튼
 │   ├── ErrorBoundary.tsx       # 에러 바운더리
 │   └── Toast.tsx               # 토스트 알림
 ├── store/
@@ -132,6 +145,7 @@ src/
 └── lib/
     ├── types.ts                # TypeScript 타입 정의
     ├── searchEngine.ts         # 검색 엔진 (Exact + CJK)
+    ├── keywordExtractor.ts     # 키워드 추출 (TF-IDF, TextRank, N-gram)
     ├── pdfLoader.ts            # PDF.js CDN 로더
     ├── env.ts                  # 환경 변수 유틸
     ├── rateLimit.ts            # API Rate Limiting

@@ -63,7 +63,7 @@ input, textarea,
 .textLayer {
   position: absolute;
   inset: 0;
-  overflow: clip;
+  overflow: visible;
   opacity: 1;
   line-height: 1;
   text-size-adjust: none;
@@ -78,7 +78,8 @@ input, textarea,
   white-space: pre;
   transform-origin: 0% 0%;
   cursor: text;
-  overflow: clip;
+  overflow: visible;
+  padding-right: 1px;
 }
 
 .textLayer span.markedContent {
@@ -106,12 +107,19 @@ input, textarea,
   background-color: rgba(255, 213, 0, 0.4);
   border-radius: 2px;
   mix-blend-mode: multiply;
-  transition: background-color 0.2s;
+  transition: background-color 0.2s, box-shadow 0.2s;
 }
+
+/* When inline style sets background, it overrides the default yellow */
 
 .highlight-mark.semantic {
   background-color: rgba(100, 180, 255, 0.35);
   border-radius: 3px;
+}
+
+.highlight-mark.keyword {
+  border-radius: 1px;
+  mix-blend-mode: multiply;
 }
 
 .highlight-mark.current {

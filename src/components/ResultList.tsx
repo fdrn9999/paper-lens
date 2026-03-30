@@ -101,18 +101,32 @@ function RelevanceBadge({ score }: { score: number }) {
   );
 }
 
+function TermBadge({ color, label }: { color: string; label: string }) {
+  return (
+    <span
+      className="text-[9px] font-medium px-1.5 py-0.5 rounded-full text-white shrink-0 truncate max-w-[60px]"
+      style={{ backgroundColor: color }}
+      title={label}
+    >
+      {label}
+    </span>
+  );
+}
+
 const ResultItem = memo(function ResultItem({
   result,
   isCurrent,
   globalIndex,
   searchQuery,
   onGoToResult,
+  hasMultiTerms,
 }: {
   result: SearchResult;
   isCurrent: boolean;
   globalIndex: number;
   searchQuery: string;
   onGoToResult: (idx: number) => void;
+  hasMultiTerms: boolean;
 }) {
   const handleClick = useCallback(() => onGoToResult(globalIndex), [onGoToResult, globalIndex]);
   const semantic = isSemantic(result);
@@ -128,6 +142,7 @@ const ResultItem = memo(function ResultItem({
           ? 'bg-orange-50 border-l-2 border-orange-400'
           : 'hover:bg-gray-50 border-l-2 border-transparent'
         }`}
+      style={!isCurrent && result.termColor ? { borderLeftColor: result.termColor, borderLeftWidth: '2px' } : undefined}
     >
       {semantic ? (
         <div className="flex items-start gap-1.5">
@@ -137,7 +152,14 @@ const ResultItem = memo(function ResultItem({
           {result.relevanceScore != null && <RelevanceBadge score={result.relevanceScore} />}
         </div>
       ) : (
-        <HighlightedContext result={result} isCurrent={isCurrent} />
+        <div className="flex items-start gap-1.5">
+          <div className="flex-1 min-w-0">
+            <HighlightedContext result={result} isCurrent={isCurrent} />
+          </div>
+          {hasMultiTerms && result.termColor && result.termLabel && (
+            <TermBadge color={result.termColor} label={result.termLabel} />
+          )}
+        </div>
       )}
     </button>
   );
@@ -156,6 +178,8 @@ export default memo(function ResultList() {
   const embeddingProgress = useStore((s) => s.embeddingProgress);
   const isExtracting = useStore((s) => s.isExtracting);
   const pageTextContents = useStore((s) => s.pageTextContents);
+  const searchTerms = useStore((s) => s.searchTerms);
+  const hasMultiTerms = searchTerms.length > 1;
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const userScrolledRef = useRef(false);
@@ -316,20 +340,20 @@ export default memo(function ResultList() {
     );
   }
 
-  if (searchResults.length === 0 && searchQuery) {
+  if (searchResults.length === 0 && (searchQuery || searchTerms.length > 0)) {
     const searchModeVal = searchMode;
     return (
       <div className="p-4 text-center text-sm">
         {isExtracting ? (
           <div className="text-amber-600">
-            <p>&quot;{searchQuery}&quot; 검색 중...</p>
+            <p>&quot;{searchTerms.length > 0 ? searchTerms.map(t => t.term).join(', ') : searchQuery}&quot; 검색 중...</p>
             <p className="text-xs text-gray-400 mt-1">
               텍스트 추출이 진행 중이므로 결과가 추가될 수 있습니다 ({pageTextContents.length}페이지 완료)
             </p>
           </div>
         ) : (
           <div className="text-gray-500">
-            <p>&quot;{searchQuery}&quot;에 대한 검색 결과가 없습니다.</p>
+            <p>&quot;{searchTerms.length > 0 ? searchTerms.map(t => t.term).join(', ') : searchQuery}&quot;에 대한 검색 결과가 없습니다.</p>
             <div className="mt-2 text-xs text-gray-400 space-y-1">
               {searchModeVal === 'exact' ? (
                 <>
@@ -408,6 +432,7 @@ export default memo(function ResultList() {
                 globalIndex={item.globalIndex}
                 searchQuery={isSemantic(item.result) ? searchQuery : ''}
                 onGoToResult={goToResult}
+                hasMultiTerms={hasMultiTerms}
               />
             </div>
           );
