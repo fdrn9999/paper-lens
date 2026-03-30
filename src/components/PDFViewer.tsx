@@ -1100,9 +1100,9 @@ export default memo(function PDFViewer() {
     <div
       onMouseDown={handleMouseDown}
       onMouseUp={handleMouseUp}
-      className="overflow-auto h-full bg-gray-200 relative flex items-center justify-center"
+      className="overflow-auto h-full bg-gray-200 relative flex items-start justify-center"
     >
-      <div ref={canvasContainerRef} className="flex items-center justify-center" />
+      <div ref={canvasContainerRef} />
       {floatingBtnEl}
       {renderingCanvas && (
         <div className="absolute inset-0 flex items-center justify-center bg-white/50 z-20">
