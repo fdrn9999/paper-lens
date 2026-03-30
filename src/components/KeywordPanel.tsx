@@ -33,9 +33,9 @@ const ALGO_INFO: Record<KeywordAlgorithm, {
   },
   ngram: {
     icon: '\u{1F524}',
-    title: 'N-gram CNN (TextCNN 기반 추출)',
-    description: 'N-gram 패턴과 CNN(합성곱 신경망) 개념을 결합하여 다양한 길이의 핵심 구문을 추출합니다.',
-    howItWorks: 'TextCNN처럼 다양한 크기의 필터(unigram, bigram, trigram)로 텍스트를 스캔하고, 길이별 가중치를 적용하여 중요한 N-gram 패턴을 포착합니다.',
+    title: 'N-gram CNN (CNN 영감 다중 필터 추출)',
+    description: 'TextCNN의 다중 필터 아이디어에서 영감받아, 다양한 길이의 N-gram 패턴을 추출합니다.',
+    howItWorks: 'CNN의 다양한 크기 필터 개념을 차용하여 unigram, bigram, trigram을 동시에 스캔하고, 길이별 가중치(1x, 1.5x, 2x)를 적용합니다. 신경망 학습 기반이 아닌 통계적 패턴 매칭 방식입니다.',
     bestFor: '복합 명사, 기술 용어 등 다단어 핵심 표현 발견',
   },
 };
