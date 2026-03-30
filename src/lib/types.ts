@@ -82,7 +82,7 @@ export interface SearchTerm {
   color: string;
 }
 
-export type KeywordAlgorithm = 'tfidf' | 'textrank' | 'ngram' | 'user';
+export type KeywordAlgorithm = 'tfidf' | 'textrank' | 'ngram';
 
 export interface KeywordContext {
   page: number;

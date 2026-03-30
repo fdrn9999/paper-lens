@@ -464,7 +464,5 @@ export async function extractKeywordsByAlgorithm(
       return extractTextRank(pages, pageTokens, allTokens, TOP_K);
     case 'ngram':
       return extractNgram(pages, pageTokens, allTokens, TOP_K);
-    case 'user':
-      return []; // User keywords are managed manually, not extracted
   }
 }

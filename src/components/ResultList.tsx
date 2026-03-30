@@ -405,6 +405,25 @@ export default memo(function ResultList() {
         <span className="text-sm font-medium text-gray-700" aria-live="polite">
           검색 결과: {searchResults.length}건
         </span>
+        {/* Per-term statistics summary */}
+        {hasMultiTerms && (
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {searchTerms.map((st) => {
+              const termResults = searchResults.filter((r) => r.termLabel === st.term);
+              const uniquePages = new Set(termResults.map((r) => r.page)).size;
+              return (
+                <span
+                  key={st.id}
+                  className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full text-white font-medium"
+                  style={{ backgroundColor: st.color }}
+                >
+                  {st.term}
+                  <span className="opacity-80">{termResults.length}건 / {uniquePages}p</span>
+                </span>
+              );
+            })}
+          </div>
+        )}
       </div>
       <div style={{ height: totalHeight, position: 'relative' }}>
         {virtualItems.slice(startIdx, endIdx).map((item, i) => {

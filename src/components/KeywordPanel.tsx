@@ -1,14 +1,13 @@
 'use client';
 
-import { memo, useState, useCallback, useMemo } from 'react';
+import { memo, useCallback, useMemo } from 'react';
 import useStore from '@/store/useStore';
 import type { ExtractedKeyword, KeywordAlgorithm } from '@/lib/types';
 
-const ALGO_TABS: { key: KeywordAlgorithm | 'user'; label: string }[] = [
+const ALGO_TABS: { key: KeywordAlgorithm; label: string }[] = [
   { key: 'tfidf', label: 'TF-IDF' },
   { key: 'textrank', label: 'TextRank' },
   { key: 'ngram', label: 'N-gram' },
-  { key: 'user', label: '사용자' },
 ];
 
 /** Highlight keyword occurrences within a snippet string. */
@@ -39,20 +38,14 @@ const KeywordCard = memo(function KeywordCard({
   keyword,
   isActive,
   onToggle,
-  onRemove,
   onPageClick,
 }: {
   keyword: ExtractedKeyword;
   isActive: boolean;
   onToggle: (term: string) => void;
-  onRemove?: (term: string) => void;
   onPageClick: (page: number) => void;
 }) {
   const handleClick = useCallback(() => onToggle(keyword.term), [onToggle, keyword.term]);
-  const handleRemove = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-    onRemove?.(keyword.term);
-  }, [onRemove, keyword.term]);
 
   const displayPages = keyword.pages.slice(0, 5);
   const extraPages = keyword.pages.length - 5;
@@ -79,25 +72,12 @@ const KeywordCard = memo(function KeywordCard({
         <div className="w-1 shrink-0 rounded-l-lg" style={{ backgroundColor: keyword.color }} />
 
         <div className="flex-1 min-w-0 p-2.5">
-          {/* Header: term + badge + remove */}
+          {/* Header: term + badge */}
           <div className="flex items-center gap-1.5 mb-1.5">
             <span className="font-bold text-sm text-gray-900 truncate">{keyword.term}</span>
-            {keyword.algorithm !== 'user' && (
-              <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-500 shrink-0 uppercase font-medium tracking-wide">
-                {keyword.algorithm}
-              </span>
-            )}
-            {onRemove && (
-              <button
-                onClick={handleRemove}
-                className="ml-auto shrink-0 w-5 h-5 flex items-center justify-center rounded hover:bg-red-100 text-gray-400 hover:text-red-500 transition-colors"
-                aria-label={`${keyword.term} 삭제`}
-              >
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            )}
+            <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-500 shrink-0 uppercase font-medium tracking-wide">
+              {keyword.algorithm}
+            </span>
           </div>
 
           {/* Score bar + frequency */}
@@ -146,38 +126,6 @@ const KeywordCard = memo(function KeywordCard({
   );
 });
 
-function UserKeywordInput() {
-  const [value, setValue] = useState('');
-  const addUserKeyword = useStore((s) => s.addUserKeyword);
-
-  const handleSubmit = useCallback((e: React.FormEvent) => {
-    e.preventDefault();
-    if (value.trim()) {
-      addUserKeyword(value.trim());
-      setValue('');
-    }
-  }, [value, addUserKeyword]);
-
-  return (
-    <form onSubmit={handleSubmit} className="flex gap-1.5 mb-3">
-      <input
-        type="text"
-        value={value}
-        onChange={(e) => setValue(e.target.value)}
-        placeholder="키워드 입력 후 Enter"
-        className="flex-1 min-w-0 px-2.5 py-1.5 text-sm border rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-400 focus:border-blue-400"
-      />
-      <button
-        type="submit"
-        disabled={!value.trim()}
-        className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors font-medium shrink-0"
-      >
-        추가
-      </button>
-    </form>
-  );
-}
-
 export default memo(function KeywordPanel() {
   const keywords = useStore((s) => s.keywords);
   const keywordAlgorithm = useStore((s) => s.keywordAlgorithm);
@@ -188,7 +136,6 @@ export default memo(function KeywordPanel() {
   const pageTextContents = useStore((s) => s.pageTextContents);
   const setKeywordAlgorithm = useStore((s) => s.setKeywordAlgorithm);
   const toggleKeywordHighlight = useStore((s) => s.toggleKeywordHighlight);
-  const removeUserKeyword = useStore((s) => s.removeUserKeyword);
   const setCurrentPage = useStore((s) => s.setCurrentPage);
 
   const handlePageClick = useCallback((page: number) => {
@@ -252,16 +199,11 @@ export default memo(function KeywordPanel() {
 
       {/* Content */}
       <div className="flex-1 overflow-auto p-2.5">
-        {/* User keyword input */}
-        {keywordAlgorithm === 'user' && <UserKeywordInput />}
-
         {/* Empty state */}
         {(!keywords || keywords.length === 0) && (
           <div className="flex items-center justify-center py-8">
             <p className="text-sm text-gray-400 text-center">
-              {keywordAlgorithm === 'user'
-                ? '키워드를 직접 추가해보세요.'
-                : '추출된 키워드가 없습니다.'}
+              추출된 키워드가 없습니다.
             </p>
           </div>
         )}
@@ -275,7 +217,6 @@ export default memo(function KeywordPanel() {
                 keyword={kw}
                 isActive={activeSet.has(kw.term)}
                 onToggle={toggleKeywordHighlight}
-                onRemove={keywordAlgorithm === 'user' ? removeUserKeyword : undefined}
                 onPageClick={handlePageClick}
               />
             ))}

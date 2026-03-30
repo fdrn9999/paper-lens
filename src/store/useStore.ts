@@ -402,10 +402,9 @@ interface AppState {
   searchTerms: SearchTerm[];
 
   keywords: ExtractedKeyword[] | null;
-  keywordAlgorithm: KeywordAlgorithm | 'user';
+  keywordAlgorithm: KeywordAlgorithm;
   allKeywords: Record<string, ExtractedKeyword[]>;
   activeKeywords: string[];
-  userKeywords: ExtractedKeyword[];
   isExtractingKeywords: boolean;
   keywordProgress: { current: number; total: number } | null;
   sidebarTab: 'search' | 'keywords';
@@ -447,10 +446,8 @@ interface AppState {
   clearSearchTerms: () => void;
 
   extractAllKeywords: () => void;
-  setKeywordAlgorithm: (algo: KeywordAlgorithm | 'user') => void;
+  setKeywordAlgorithm: (algo: KeywordAlgorithm) => void;
   toggleKeywordHighlight: (term: string) => void;
-  addUserKeyword: (term: string) => void;
-  removeUserKeyword: (term: string) => void;
   clearKeywords: () => void;
   setSidebarTab: (tab: 'search' | 'keywords') => void;
 
@@ -503,10 +500,9 @@ const initialState = {
   dailyUsage: { translate: 0, embed: 0, date: '' },
   searchTerms: [] as SearchTerm[],
   keywords: null as ExtractedKeyword[] | null,
-  keywordAlgorithm: 'tfidf' as KeywordAlgorithm | 'user',
+  keywordAlgorithm: 'tfidf' as KeywordAlgorithm,
   allKeywords: {} as Record<string, ExtractedKeyword[]>,
   activeKeywords: [] as string[],
-  userKeywords: [] as ExtractedKeyword[],
   isExtractingKeywords: false,
   keywordProgress: null as { current: number; total: number } | null,
   sidebarTab: 'search' as 'search' | 'keywords',
@@ -558,7 +554,6 @@ const useStore = create<AppState>()(
           keywords: null,
           allKeywords: {},
           activeKeywords: [],
-          userKeywords: [],
           isExtractingKeywords: false,
           keywordProgress: null,
         });
@@ -1156,7 +1151,7 @@ const useStore = create<AppState>()(
               set({ keywordProgress: { current: i + 1, total: 3 } });
             }
             const algo = get().keywordAlgorithm;
-            const active = algo === 'user' ? get().userKeywords : (cache[algo] || []);
+            const active = cache[algo] || [];
             set({
               allKeywords: cache,
               keywords: active,
@@ -1170,9 +1165,8 @@ const useStore = create<AppState>()(
       },
 
       setKeywordAlgorithm: (algo) => {
-        const { allKeywords, userKeywords } = get();
-        const keywords = algo === 'user' ? userKeywords : (allKeywords[algo] || null);
-        set({ keywordAlgorithm: algo, keywords });
+        const { allKeywords } = get();
+        set({ keywordAlgorithm: algo, keywords: allKeywords[algo] || null });
       },
 
       toggleKeywordHighlight: (term) => {
@@ -1182,81 +1176,6 @@ const useStore = create<AppState>()(
         set({ activeKeywords: next });
       },
 
-      addUserKeyword: (term) => {
-        const trimmed = term.trim().toLowerCase();
-        if (!trimmed) return;
-        const { userKeywords, pageTextContents, keywordAlgorithm } = get();
-        if (userKeywords.some((k) => k.term === trimmed)) return;
-
-        // Compute occurrence stats from page text contents
-        let frequency = 0;
-        let totalWords = 0;
-        const pages: number[] = [];
-        const contexts: { page: number; snippet: string; itemIndex: number }[] = [];
-
-        const kwTokens = trimmed.split(/\s+/);
-        const isMultiWord = kwTokens.length > 1;
-
-        for (const page of pageTextContents) {
-          const re = /[\p{L}\p{N}]+(?:[-'][\p{L}\p{N}]+)*/gu;
-          const tokens: string[] = [];
-          let m;
-          while ((m = re.exec(page.fullText)) !== null) tokens.push(m[0].toLowerCase());
-          totalWords += tokens.length;
-
-          let found = false;
-          if (isMultiWord) {
-            // Multi-word: count consecutive token matches (skipping stopwords not needed here)
-            for (let i = 0; i <= tokens.length - kwTokens.length; i++) {
-              let match = true;
-              for (let j = 0; j < kwTokens.length; j++) {
-                if (tokens[i + j] !== kwTokens[j]) { match = false; break; }
-              }
-              if (match) { frequency++; found = true; }
-            }
-          } else {
-            for (const t of tokens) {
-              if (t === trimmed) { frequency++; found = true; }
-            }
-          }
-          if (found) pages.push(page.page);
-
-          if (contexts.length < 3) {
-            for (const item of page.items) {
-              if (contexts.length >= 3) break;
-              if (item.text.toLowerCase().includes(trimmed)) {
-                contexts.push({ page: page.page, snippet: item.text.slice(0, 120), itemIndex: item.itemIndex });
-              }
-            }
-          }
-        }
-
-        const newKeyword: ExtractedKeyword = {
-          term: trimmed,
-          score: 1,
-          frequency,
-          frequencyPercent: totalWords > 0 ? (frequency / totalWords) * 100 : 0,
-          pages,
-          contexts,
-          algorithm: 'user',
-          color: `hsl(${(userKeywords.length * 137.5) % 360}, 70%, 55%)`,
-        };
-
-        const updated = [...userKeywords, newKeyword];
-        const patch: Partial<AppState> = { userKeywords: updated };
-        if (keywordAlgorithm === 'user') patch.keywords = updated;
-        set(patch);
-      },
-
-      removeUserKeyword: (term) => {
-        const { userKeywords, keywordAlgorithm, activeKeywords } = get();
-        const updated = userKeywords.filter((k) => k.term !== term);
-        const next = activeKeywords.filter((t) => t !== term);
-        const patch: Partial<AppState> = { userKeywords: updated, activeKeywords: next };
-        if (keywordAlgorithm === 'user') patch.keywords = updated;
-        set(patch);
-      },
-
       setSidebarTab: (tab) => set({ sidebarTab: tab }),
 
       clearKeywords: () => {
@@ -1264,7 +1183,6 @@ const useStore = create<AppState>()(
           keywords: null,
           allKeywords: {},
           activeKeywords: [],
-          userKeywords: [],
           isExtractingKeywords: false,
           keywordProgress: null,
         });
@@ -1302,7 +1220,6 @@ const useStore = create<AppState>()(
           keywords: null,
           allKeywords: {},
           activeKeywords: [],
-          userKeywords: [],
           isExtractingKeywords: false,
           keywordProgress: null,
         });
