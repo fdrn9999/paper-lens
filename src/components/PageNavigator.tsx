@@ -79,6 +79,9 @@ export default memo(function PageNavigator() {
               <path strokeLinecap="round" strokeWidth={1.5} d="M12 20v2M12 20l-2-1.5M12 20l2-1.5" />
             </svg>
           )}
+          <span className="hidden sm:inline text-[10px]">
+            {viewerMode === 'scroll' ? '페이지' : '스크롤'}
+          </span>
         </button>
 
         <button
@@ -131,9 +134,15 @@ export default memo(function PageNavigator() {
         >
           −
         </button>
-        <span className="text-gray-600 inline min-w-[50px] text-center" aria-live="polite">
+        <button
+          onClick={() => setScale(1.5)}
+          className="text-gray-600 min-w-[50px] text-center text-sm hover:bg-gray-100 rounded px-1 py-0.5 transition-colors"
+          title="기본 크기로 복원"
+          aria-label="기본 크기로 복원"
+          aria-live="polite"
+        >
           {Math.round(scale * 100)}%
-        </span>
+        </button>
         <button
           onClick={() => setScale(scale + 0.25)}
           disabled={scale >= 3}

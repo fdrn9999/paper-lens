@@ -945,6 +945,8 @@ export default memo(function PDFViewer() {
     if (!scrollContainer) return;
     const handleScroll = () => {
       if (scrollStartRef.current === null) return;
+      const scrollDist = Math.abs(scrollContainer.scrollTop - scrollStartRef.current);
+      if (scrollDist < 60) return; // Allow small scrolls without dismissing
       const sel = window.getSelection();
       const text = sel?.toString().trim();
       if (text && text.length > 0 && sel?.rangeCount && contentContainer?.contains(sel.anchorNode)) {

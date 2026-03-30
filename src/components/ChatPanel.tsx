@@ -87,23 +87,11 @@ export default memo(function ChatPanel() {
 
   const [input, setInput] = useState('');
   const [summaryExpanded, setSummaryExpanded] = useState(true);
+  const [confirmClear, setConfirmClear] = useState(false);
+  const confirmClearTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const hasSummarizedRef = useRef(false);
-
-  // Auto-trigger summarize when panel first renders with extracted text
-  useEffect(() => {
-    if (
-      !hasSummarizedRef.current &&
-      !isExtracting &&
-      pageTextContents.length > 0 &&
-      !chatSummary &&
-      !isSummarizing
-    ) {
-      hasSummarizedRef.current = true;
-      summarizePaper();
-    }
-  }, [isExtracting, pageTextContents.length, chatSummary, isSummarizing, summarizePaper]);
 
   // Reset summarize flag when PDF changes
   useEffect(() => {
@@ -191,14 +179,31 @@ export default memo(function ChatPanel() {
           )}
         </div>
         <button
-          onClick={clearChat}
-          className="p-1.5 rounded-md text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors shrink-0 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center"
+          onClick={() => {
+            if (confirmClear) {
+              clearChat();
+              setConfirmClear(false);
+              if (confirmClearTimerRef.current) clearTimeout(confirmClearTimerRef.current);
+            } else {
+              setConfirmClear(true);
+              confirmClearTimerRef.current = setTimeout(() => setConfirmClear(false), 3000);
+            }
+          }}
+          className={`p-1.5 rounded-md transition-colors shrink-0 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center gap-1 ${
+            confirmClear
+              ? 'text-red-600 bg-red-50 hover:bg-red-100'
+              : 'text-gray-400 hover:text-red-500 hover:bg-red-50'
+          }`}
           aria-label="대화 초기화"
           title="대화 초기화"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-            <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
-          </svg>
+          {confirmClear ? (
+            <span className="text-xs font-medium">초기화?</span>
+          ) : (
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+            </svg>
+          )}
         </button>
       </div>
 
@@ -259,7 +264,22 @@ export default memo(function ChatPanel() {
               {msg.role === 'user' ? (
                 <p className="text-sm whitespace-pre-wrap break-words">{msg.content}</p>
               ) : (
-                <FormattedText text={msg.content} />
+                <div className="chat-message">
+                  <FormattedText text={msg.content} />
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(msg.content);
+                      window.dispatchEvent(new CustomEvent('paperlens-toast', { detail: { text: '복사되었습니다.', type: 'success' } }));
+                    }}
+                    className="mt-1 p-1 rounded hover:bg-gray-100 text-gray-300 hover:text-gray-500 transition-colors"
+                    title="복사"
+                    aria-label="메시지 복사"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                  </button>
+                </div>
               )}
             </div>
           </div>
@@ -283,6 +303,20 @@ export default memo(function ChatPanel() {
             <p className="text-sm text-gray-400 mb-4">
               논문에 대해 궁금한 것을 질문해보세요.
             </p>
+            {!chatSummary && !isSummarizing && (
+              <button
+                onClick={summarizePaper}
+                className="w-full px-4 py-3 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-xl transition-colors text-left mb-4"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">📋</span>
+                  <div>
+                    <p className="text-sm font-semibold text-purple-700">논문 요약 생성하기</p>
+                    <p className="text-xs text-purple-500">AI가 논문의 핵심 내용을 구조화하여 요약합니다</p>
+                  </div>
+                </div>
+              </button>
+            )}
             <div className="flex flex-wrap justify-center gap-2">
               {EXAMPLE_QUESTIONS.map((q) => (
                 <button

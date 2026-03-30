@@ -188,7 +188,7 @@ export default memo(function SearchBar() {
         </button>
 
         {/* Clear all terms button */}
-        {searchTerms.length > 1 && (
+        {searchTerms.length >= 1 && (
           <button
             onClick={() => { clearSearch(); lastSearchedRef.current = ''; }}
             className="px-2 py-2 min-h-[44px] sm:min-h-0 text-xs rounded-lg border border-gray-300 bg-gray-100 text-gray-500 hover:bg-red-50 hover:border-red-300 hover:text-red-500 transition-colors shrink-0"

@@ -69,11 +69,15 @@ const KeywordCard = memo(function KeywordCard({
   isActive,
   onToggle,
   onPageClick,
+  onAddToSearch,
+  onSwitchToSearch,
 }: {
   keyword: ExtractedKeyword;
   isActive: boolean;
   onToggle: (term: string) => void;
   onPageClick: (page: number) => void;
+  onAddToSearch: (term: string) => void;
+  onSwitchToSearch: (tab: 'search') => void;
 }) {
   const handleClick = useCallback(() => onToggle(keyword.term), [onToggle, keyword.term]);
 
@@ -108,6 +112,16 @@ const KeywordCard = memo(function KeywordCard({
             <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-500 shrink-0 uppercase font-medium tracking-wide">
               {keyword.algorithm}
             </span>
+            <button
+              onClick={(e) => { e.stopPropagation(); onAddToSearch(keyword.term); onSwitchToSearch('search'); window.dispatchEvent(new CustomEvent('paperlens-toast', { detail: { text: `"${keyword.term}" 검색어에 추가됨`, type: 'success' } })); }}
+              className="ml-auto shrink-0 w-5 h-5 flex items-center justify-center rounded hover:bg-blue-100 text-gray-400 hover:text-blue-600 transition-colors"
+              title="검색에 추가"
+              aria-label={`${keyword.term} 검색에 추가`}
+            >
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </button>
           </div>
 
           {/* Score bar + frequency */}
@@ -168,6 +182,8 @@ export default memo(function KeywordPanel() {
   const toggleKeywordHighlight = useStore((s) => s.toggleKeywordHighlight);
   const toggleAllKeywordHighlights = useStore((s) => s.toggleAllKeywordHighlights);
   const setCurrentPage = useStore((s) => s.setCurrentPage);
+  const addSearchTerm = useStore((s) => s.addSearchTerm);
+  const setSidebarTab = useStore((s) => s.setSidebarTab);
 
   const [showAlgoInfo, setShowAlgoInfo] = useState(false);
 
@@ -315,6 +331,8 @@ export default memo(function KeywordPanel() {
                 isActive={activeSet.has(kw.term)}
                 onToggle={toggleKeywordHighlight}
                 onPageClick={handlePageClick}
+                onAddToSearch={addSearchTerm}
+                onSwitchToSearch={setSidebarTab}
               />
             ))}
           </div>

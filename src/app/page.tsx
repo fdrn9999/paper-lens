@@ -62,6 +62,7 @@ export default function Home() {
       // Ctrl+F / Cmd+F → focus search bar
       if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
         e.preventDefault();
+        setIsSidebarOpen(true);
         const searchInput = document.querySelector('[data-guide="search-bar"] input') as HTMLInputElement;
         searchInput?.focus();
         return;
@@ -73,6 +74,26 @@ export default function Home() {
           setShowTranslation(false);
           setIsSidebarOpen(false);
         }
+        return;
+      }
+
+      // Tab switching shortcuts
+      if ((e.ctrlKey || e.metaKey) && e.key === '1') {
+        e.preventDefault();
+        setSidebarTab('search');
+        if (window.innerWidth < 1024) setIsSidebarOpen(true);
+        return;
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === '2') {
+        e.preventDefault();
+        setSidebarTab('keywords');
+        if (window.innerWidth < 1024) setIsSidebarOpen(true);
+        return;
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === '3') {
+        e.preventDefault();
+        setSidebarTab('chat');
+        if (window.innerWidth < 1024) setIsSidebarOpen(true);
         return;
       }
 
@@ -120,7 +141,7 @@ export default function Home() {
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [pdfData, viewerMode, setCurrentPage, setShowTranslation, setIsSidebarOpen]);
+  }, [pdfData, viewerMode, setCurrentPage, setShowTranslation, setIsSidebarOpen, setSidebarTab]);
 
   const goHome = useCallback(() => reset(), [reset]);
 

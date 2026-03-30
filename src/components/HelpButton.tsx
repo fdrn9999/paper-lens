@@ -97,6 +97,11 @@ export default function HelpButton() {
                 <div><kbd className="px-1 py-0.5 bg-gray-100 rounded text-[10px] font-mono">Esc</kbd> 검색 초기화</div>
                 <div><span className="px-1 py-0.5 bg-gray-100 rounded text-[10px] font-mono">Aa</span> 버튼: 대소문자 구분</div>
               </div>
+              <div className="mt-2 pt-2 border-t border-gray-100 grid grid-cols-2 gap-1.5 text-xs text-gray-600">
+                <div><kbd className="px-1 py-0.5 bg-gray-100 rounded text-[10px] font-mono">Ctrl+1</kbd> 검색 탭</div>
+                <div><kbd className="px-1 py-0.5 bg-gray-100 rounded text-[10px] font-mono">Ctrl+2</kbd> 키워드 탭</div>
+                <div><kbd className="px-1 py-0.5 bg-gray-100 rounded text-[10px] font-mono">Ctrl+3</kbd> AI 탭</div>
+              </div>
               {/* Mode-specific page navigation keys */}
               <div className="mt-2 pt-2 border-t border-gray-100 space-y-1 text-xs">
                 <div className={`flex items-center gap-1.5 ${isScrollMode ? 'text-blue-600 font-medium' : 'text-gray-400'}`}>

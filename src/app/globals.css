@@ -54,7 +54,8 @@ body {
 /* Allow text selection in specific areas */
 input, textarea,
 .textLayer,
-[contenteditable="true"] {
+[contenteditable="true"],
+.chat-message, .translation-result {
   -webkit-user-select: text;
   user-select: text;
 }
