@@ -13,6 +13,7 @@ import TranslationPanel from '@/components/TranslationPanel';
 import GuideOverlay from '@/components/GuideOverlay';
 import HelpButton from '@/components/HelpButton';
 import UsageButton from '@/components/UsageButton';
+import QuotaIndicator from '@/components/QuotaIndicator';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import ToastContainer from '@/components/Toast';
 
@@ -31,6 +32,12 @@ export default function Home() {
   const viewerMode = useStore((s) => s.viewerMode);
   const sidebarTab = useStore((s) => s.sidebarTab);
   const setSidebarTab = useStore((s) => s.setSidebarTab);
+  const fetchQuota = useStore((s) => s.fetchQuota);
+  const translateQuota = useStore((s) => s.translateQuota);
+  const chatQuota = useStore((s) => s.chatQuota);
+
+  // Fetch quota on mount so header shows usage immediately
+  useEffect(() => { fetchQuota(); }, [fetchQuota]);
 
   // Auto-start guide for first-time users after PDF loads
   useEffect(() => {
@@ -260,8 +267,14 @@ export default function Home() {
           {/* Spacer pushes HelpButton to right edge on mobile top row */}
           <div className="flex-1 sm:hidden" />
 
-          {/* HelpButton + UsageButton in mobile top row */}
+          {/* Quota + HelpButton in mobile top row */}
           <div className="sm:hidden flex items-center gap-1">
+            {(translateQuota || chatQuota) && (
+              <div className="flex items-center gap-2 mr-1">
+                {chatQuota && <QuotaIndicator label="AI" usedPercent={chatQuota.usedPercent} color="purple" compact />}
+                {translateQuota && <QuotaIndicator label="번역" usedPercent={translateQuota.usedPercent} color="blue" compact />}
+              </div>
+            )}
             <UsageButton />
             <HelpButton />
           </div>
@@ -272,8 +285,14 @@ export default function Home() {
           <SearchBar />
         </div>
 
-        {/* HelpButton + UsageButton for sm+ (hidden on mobile, shown in top row instead) */}
-        <div className="hidden sm:flex items-center gap-1 shrink-0">
+        {/* Quota + HelpButton for sm+ (hidden on mobile, shown in top row instead) */}
+        <div className="hidden sm:flex items-center gap-2 shrink-0">
+          {(translateQuota || chatQuota) && (
+            <div className="flex items-center gap-3 mr-1">
+              {chatQuota && <QuotaIndicator label="AI" usedPercent={chatQuota.usedPercent} color="purple" compact />}
+              {translateQuota && <QuotaIndicator label="번역" usedPercent={translateQuota.usedPercent} color="blue" compact />}
+            </div>
+          )}
           <UsageButton />
           <HelpButton />
         </div>

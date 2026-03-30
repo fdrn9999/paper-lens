@@ -49,9 +49,10 @@ function scheduleQuotaReset(get: () => AppState, set: (s: Partial<AppState>) => 
 
 const API_TIMEOUT_MS = 60000; // 60s for chat (longer than search)
 
-/** Return UTC date string (YYYY-MM-DD) */
-function getUTCDateString(): string {
-  return new Date().toISOString().slice(0, 10);
+/** Return KST date string (YYYY-MM-DD) — matches server-side reset at KST midnight */
+function getKSTDateString(): string {
+  const kst = new Date(Date.now() + 9 * 60 * 60 * 1000);
+  return kst.toISOString().slice(0, 10);
 }
 
 /** Wrap fetch with a per-request timeout. */
@@ -159,6 +160,7 @@ interface AppState {
   updateQuotaFromHeaders: (type: 'translate' | 'chat', headers: Headers) => void;
   incrementDailyUsage: (type: 'translate' | 'chat', charCount?: number) => void;
   getDailyUsage: (type: 'translate' | 'chat') => number;
+  fetchQuota: () => Promise<void>;
 
   // Chat actions
   sendChatMessage: (message: string) => Promise<void>;
@@ -429,7 +431,7 @@ const useStore = create<AppState>()(
       },
 
       incrementDailyUsage: (type, charCount = 1) => {
-        const today = getUTCDateString();
+        const today = getKSTDateString();
         const usage = get().dailyUsage;
         if (usage.date !== today) {
           set({ dailyUsage: { translate: type === 'translate' ? charCount : 0, chat: type === 'chat' ? charCount : 0, date: today } });
@@ -439,9 +441,19 @@ const useStore = create<AppState>()(
       },
 
       getDailyUsage: (type) => {
-        const today = getUTCDateString();
+        const today = getKSTDateString();
         const usage = get().dailyUsage;
         return usage.date === today ? usage[type] : 0;
+      },
+
+      fetchQuota: async () => {
+        try {
+          const res = await fetch('/api/quota');
+          if (!res.ok) return;
+          const data = await res.json();
+          if (data.translate) set({ translateQuota: data.translate });
+          if (data.chat) set({ chatQuota: data.chat });
+        } catch { /* silent */ }
       },
 
       setSelectedText: (text) => set({ selectedText: text }),

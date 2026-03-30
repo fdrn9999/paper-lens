@@ -42,6 +42,7 @@ export default memo(function PDFViewer() {
 
   const [floatingBtn, setFloatingBtn] = useState<{ x: number; y: number } | null>(null);
   const scrollStartRef = useRef<number | null>(null);
+  const mouseDownPosRef = useRef<{ x: number; y: number } | null>(null);
 
   // === Scroll-mode state & refs ===
   const [pageDims, setPageDims] = useState<{ w: number; h: number }[]>([]);
@@ -856,11 +857,31 @@ export default memo(function PDFViewer() {
   // ===== TEXT SELECTION (shared, mode-aware) =====
   // ===================================================================
 
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    mouseDownPosRef.current = { x: e.clientX, y: e.clientY };
+  }, []);
+
+  /** Clean up PDF text selection: collapse excessive whitespace from span gaps */
+  const cleanSelectionText = useCallback((raw: string): string => {
+    return raw
+      .replace(/\r\n/g, '\n')
+      .replace(/[ \t]*\n[ \t]*/g, ' ')   // join broken lines
+      .replace(/ {2,}/g, ' ')             // collapse multiple spaces
+      .replace(/^\s+|\s+$/g, '');
+  }, []);
+
   const handleMouseUp = useCallback((e: React.MouseEvent) => {
+    // Ignore micro-drags (< 5px) that aren't intentional selections
+    const down = mouseDownPosRef.current;
+    if (down) {
+      const dist = Math.hypot(e.clientX - down.x, e.clientY - down.y);
+      mouseDownPosRef.current = null;
+      if (dist < 5) { setFloatingBtn(null); return; }
+    }
+
     const sel = window.getSelection();
     if (!sel || sel.rangeCount === 0) { setFloatingBtn(null); return; }
-    const rawText = sel.toString();
-    const text = rawText.replace(/^\s+|\s+$/g, '');
+    const text = cleanSelectionText(sel.toString());
     const anchor = sel.anchorNode;
     const contentContainer = viewerMode === 'scroll'
       ? scrollContainerRef.current
@@ -887,7 +908,7 @@ export default memo(function PDFViewer() {
       setFloatingBtn(null);
       scrollStartRef.current = null;
     }
-  }, [setSelectedText, viewerMode]);
+  }, [setSelectedText, viewerMode, cleanSelectionText]);
 
   // Mobile text selection (selectionchange)
   useEffect(() => {
@@ -896,17 +917,37 @@ export default memo(function PDFViewer() {
       : canvasContainerRef.current;
     if (!container) return;
 
+    // Track touch movement to distinguish scroll from selection
+    let touchMoved = false;
+    let touchStartY = 0;
+    const onTouchStart = (e: TouchEvent) => {
+      touchMoved = false;
+      touchStartY = e.touches[0]?.clientY ?? 0;
+    };
+    const onTouchMove = (e: TouchEvent) => {
+      const dy = Math.abs((e.touches[0]?.clientY ?? 0) - touchStartY);
+      if (dy > 10) touchMoved = true;
+    };
+    container.addEventListener('touchstart', onTouchStart, { passive: true });
+    container.addEventListener('touchmove', onTouchMove, { passive: true });
+
+    /** Clean up PDF text selection: collapse excessive whitespace from span gaps */
+    const cleanText = (raw: string): string =>
+      raw.replace(/\r\n/g, '\n').replace(/[ \t]*\n[ \t]*/g, ' ').replace(/ {2,}/g, ' ').replace(/^\s+|\s+$/g, '');
+
     let selDebounce: ReturnType<typeof setTimeout> | null = null;
     const handleSelectionChange = () => {
       if (selDebounce) clearTimeout(selDebounce);
       selDebounce = setTimeout(() => {
+        // Skip if user was scrolling, not selecting
+        if (touchMoved) return;
+
         const sel = window.getSelection();
         if (!sel || sel.rangeCount === 0) return;
-        const text = sel.toString();
-        // Preserve meaningful whitespace but trim leading/trailing
-        const trimmed = text.replace(/^\s+|\s+$/g, '');
+        const trimmed = cleanText(sel.toString());
+        if (trimmed.length < 2) return; // ignore single-char accidental taps
         const anchor = sel.anchorNode;
-        if (trimmed && trimmed.length > 0 && anchor && container.contains(anchor)) {
+        if (trimmed && anchor && container.contains(anchor)) {
           setSelectedText(trimmed);
           const range = sel.getRangeAt(0);
           const scrollContainer = viewerMode === 'scroll'
@@ -924,12 +965,14 @@ export default memo(function PDFViewer() {
             scrollStartRef.current = scrollContainer.scrollTop;
           }
         }
-      }, 200);
+      }, 250);
     };
 
     document.addEventListener('selectionchange', handleSelectionChange);
     return () => {
       document.removeEventListener('selectionchange', handleSelectionChange);
+      container.removeEventListener('touchstart', onTouchStart);
+      container.removeEventListener('touchmove', onTouchMove);
       if (selDebounce) clearTimeout(selDebounce);
     };
   }, [pdfDoc, setSelectedText, viewerMode]);
@@ -1036,6 +1079,7 @@ export default memo(function PDFViewer() {
     return (
       <div
         ref={scrollContainerRef}
+        onMouseDown={handleMouseDown}
         onMouseUp={handleMouseUp}
         className="overflow-auto h-full bg-gray-200 relative"
       >
@@ -1062,6 +1106,7 @@ export default memo(function PDFViewer() {
   // === Page mode ===
   return (
     <div
+      onMouseDown={handleMouseDown}
       onMouseUp={handleMouseUp}
       className="overflow-auto h-full bg-gray-200 relative"
     >

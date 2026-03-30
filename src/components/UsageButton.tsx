@@ -86,7 +86,7 @@ export default function UsageButton() {
         <div className="absolute right-0 top-full mt-2 w-64 max-w-[calc(100vw-1rem)] bg-white rounded-xl shadow-2xl border border-gray-200 z-50 overflow-hidden animate-in fade-in">
           <div className="p-3 border-b bg-gradient-to-r from-blue-50 to-emerald-50">
             <h3 className="text-sm font-bold text-gray-800">일일 사용량</h3>
-            <p className="text-[10px] text-gray-400 mt-0.5">매일 자정(UTC) 초기화</p>
+            <p className="text-[10px] text-gray-400 mt-0.5">매일 자정(한국시간) 초기화</p>
           </div>
 
           <div className="p-3 space-y-3">

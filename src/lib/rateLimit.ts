@@ -45,16 +45,21 @@ export async function checkRateLimit(key: string): Promise<{ allowed: boolean; r
     }
 }
 
-// ===== Daily usage quota (character-based, resets at UTC midnight) =====
+// ===== Daily usage quota (character-based, resets at KST midnight / UTC+9) =====
 
-function todayUTC(): string {
-    return new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
+const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
+
+function todayKST(): string {
+    const kst = new Date(Date.now() + KST_OFFSET_MS);
+    return kst.toISOString().slice(0, 10); // "YYYY-MM-DD" in KST
 }
 
-function secondsUntilMidnightUTC(): number {
-    const now = new Date();
-    const tomorrow = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1));
-    return Math.ceil((tomorrow.getTime() - now.getTime()) / 1000);
+function secondsUntilMidnightKST(): number {
+    const nowMs = Date.now();
+    const kst = new Date(nowMs + KST_OFFSET_MS);
+    const tomorrowKST = new Date(Date.UTC(kst.getUTCFullYear(), kst.getUTCMonth(), kst.getUTCDate() + 1));
+    // tomorrowKST is midnight KST expressed in UTC-shifted time; convert back
+    return Math.ceil((tomorrowKST.getTime() - KST_OFFSET_MS - nowMs) / 1000);
 }
 
 /** Per-IP daily character limits */
@@ -80,27 +85,26 @@ export async function checkGlobalQuota(
 
   try {
         const redis = getRedis();
-        const today = todayUTC();
+        const today = todayKST();
         const redisKey = `gq:${endpoint}:${today}`;
 
-      // Get current usage
-      const current = (await redis.get<number>(redisKey)) || 0;
-
-      if (current + charCount > limit) {
-              return {
-                        allowed: false,
-                        usedChars: current,
-                        limitChars: limit,
-                        usedPercent: Math.min(100, Math.round((current / limit) * 100)),
-              };
-      }
-
-      // Increment and set expiry
+      // Increment first to avoid race conditions
       const newTotal = await redis.incrby(redisKey, charCount);
         const ttl = await redis.ttl(redisKey);
         if (ttl < 0) {
-                await redis.expire(redisKey, secondsUntilMidnightUTC());
+                await redis.expire(redisKey, secondsUntilMidnightKST());
         }
+
+      if (newTotal > limit) {
+              // Rollback and deny
+              await redis.decrby(redisKey, charCount);
+              return {
+                        allowed: false,
+                        usedChars: newTotal - charCount,
+                        limitChars: limit,
+                        usedPercent: Math.min(100, Math.round(((newTotal - charCount) / limit) * 100)),
+              };
+      }
 
       return {
               allowed: true,
@@ -110,8 +114,7 @@ export async function checkGlobalQuota(
       };
   } catch (error) {
         console.error('Global quota Redis error:', error);
-        // Fail-open: allow the request
-      return { allowed: true, usedChars: 0, limitChars: limit, usedPercent: 0 };
+        return { allowed: true, usedChars: 0, limitChars: limit, usedPercent: 0 };
   }
 }
 
@@ -127,27 +130,26 @@ export async function checkDailyQuota(
 
   try {
         const redis = getRedis();
-        const today = todayUTC();
+        const today = todayKST();
         const redisKey = `dq:${endpoint}:${ip}:${today}`;
 
-      // Get current usage
-      const current = (await redis.get<number>(redisKey)) || 0;
-
-      if (current + charCount > limit) {
-              return {
-                        allowed: false,
-                        usedChars: current,
-                        limitChars: limit,
-                        usedPercent: Math.min(100, Math.round((current / limit) * 100)),
-              };
-      }
-
-      // Increment and set expiry
+      // Increment first to avoid race conditions
       const newTotal = await redis.incrby(redisKey, charCount);
         const ttl = await redis.ttl(redisKey);
         if (ttl < 0) {
-                await redis.expire(redisKey, secondsUntilMidnightUTC());
+                await redis.expire(redisKey, secondsUntilMidnightKST());
         }
+
+      if (newTotal > limit) {
+              // Rollback and deny
+              await redis.decrby(redisKey, charCount);
+              return {
+                        allowed: false,
+                        usedChars: newTotal - charCount,
+                        limitChars: limit,
+                        usedPercent: Math.min(100, Math.round(((newTotal - charCount) / limit) * 100)),
+              };
+      }
 
       return {
               allowed: true,
@@ -157,8 +159,7 @@ export async function checkDailyQuota(
       };
   } catch (error) {
         console.error('Daily quota Redis error:', error);
-        // Fail-open: allow the request
-      return { allowed: true, usedChars: 0, limitChars: limit, usedPercent: 0 };
+        return { allowed: true, usedChars: 0, limitChars: limit, usedPercent: 0 };
   }
 }
 

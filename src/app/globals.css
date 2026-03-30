@@ -80,9 +80,9 @@ input, textarea,
   transform-origin: 0% 0%;
   cursor: text;
   overflow: visible;
-  padding-right: 1px;
-  margin-top: 1px;
-  padding-bottom: 0;
+  /* Extend hit area to fill gaps between spans — prevents selection jumping */
+  padding: 2px 4px 2px 0;
+  margin: -2px 0 0 0;
 }
 
 .textLayer span.markedContent {
