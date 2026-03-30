@@ -162,7 +162,14 @@ export default function Home() {
             <h1 className="text-xl font-bold text-gray-800">PaperLens</h1>
           </div>
           <p className="text-sm text-gray-500 hidden sm:block">AI 기반 논문 탐색 도구</p>
-          <HelpButton />
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
+              <QuotaIndicator label="AI" usedPercent={chatQuota?.usedPercent ?? 0} color="purple" compact />
+              <QuotaIndicator label="번역" usedPercent={translateQuota?.usedPercent ?? 0} color="blue" compact />
+            </div>
+            <UsageButton />
+            <HelpButton />
+          </div>
         </header>
         <main className="flex-1 flex items-center justify-center p-4 sm:p-8">
           <div className="w-full max-w-xl space-y-6">
@@ -269,12 +276,10 @@ export default function Home() {
 
           {/* Quota + HelpButton in mobile top row */}
           <div className="sm:hidden flex items-center gap-1">
-            {(translateQuota || chatQuota) && (
-              <div className="flex items-center gap-2 mr-1">
-                {chatQuota && <QuotaIndicator label="AI" usedPercent={chatQuota.usedPercent} color="purple" compact />}
-                {translateQuota && <QuotaIndicator label="번역" usedPercent={translateQuota.usedPercent} color="blue" compact />}
-              </div>
-            )}
+            <div className="flex items-center gap-2 mr-1">
+              <QuotaIndicator label="AI" usedPercent={chatQuota?.usedPercent ?? 0} color="purple" compact />
+              <QuotaIndicator label="번역" usedPercent={translateQuota?.usedPercent ?? 0} color="blue" compact />
+            </div>
             <UsageButton />
             <HelpButton />
           </div>
@@ -287,12 +292,10 @@ export default function Home() {
 
         {/* Quota + HelpButton for sm+ (hidden on mobile, shown in top row instead) */}
         <div className="hidden sm:flex items-center gap-2 shrink-0">
-          {(translateQuota || chatQuota) && (
-            <div className="flex items-center gap-3 mr-1">
-              {chatQuota && <QuotaIndicator label="AI" usedPercent={chatQuota.usedPercent} color="purple" compact />}
-              {translateQuota && <QuotaIndicator label="번역" usedPercent={translateQuota.usedPercent} color="blue" compact />}
-            </div>
-          )}
+          <div className="flex items-center gap-3 mr-1">
+            <QuotaIndicator label="AI" usedPercent={chatQuota?.usedPercent ?? 0} color="purple" compact />
+            <QuotaIndicator label="번역" usedPercent={translateQuota?.usedPercent ?? 0} color="blue" compact />
+          </div>
           <UsageButton />
           <HelpButton />
         </div>
