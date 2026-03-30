@@ -169,6 +169,7 @@ interface AppState {
   extractAllKeywords: () => void;
   setKeywordAlgorithm: (algo: KeywordAlgorithm) => void;
   toggleKeywordHighlight: (term: string) => void;
+  toggleAllKeywordHighlights: () => void;
   clearKeywords: () => void;
   setSidebarTab: (tab: 'search' | 'keywords' | 'chat') => void;
 
@@ -705,6 +706,16 @@ const useStore = create<AppState>()(
         const idx = prev.indexOf(term);
         const next = idx >= 0 ? prev.filter((t) => t !== term) : [...prev, term];
         set({ activeKeywords: next });
+      },
+
+      toggleAllKeywordHighlights: () => {
+        const { keywords, activeKeywords } = get();
+        if (!keywords || keywords.length === 0) return;
+        if (activeKeywords.length > 0) {
+          set({ activeKeywords: [] });
+        } else {
+          set({ activeKeywords: keywords.map((k) => k.term) });
+        }
       },
 
       clearKeywords: () => {

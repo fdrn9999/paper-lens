@@ -1,14 +1,44 @@
 'use client';
 
-import { memo, useCallback, useMemo } from 'react';
+import { memo, useCallback, useMemo, useState } from 'react';
 import useStore from '@/store/useStore';
 import type { ExtractedKeyword, KeywordAlgorithm } from '@/lib/types';
 
 const ALGO_TABS: { key: KeywordAlgorithm; label: string }[] = [
   { key: 'tfidf', label: 'TF-IDF' },
   { key: 'textrank', label: 'TextRank' },
-  { key: 'ngram', label: 'N-gram' },
+  { key: 'ngram', label: 'N-gram CNN' },
 ];
+
+const ALGO_INFO: Record<KeywordAlgorithm, {
+  icon: string;
+  title: string;
+  description: string;
+  howItWorks: string;
+  bestFor: string;
+}> = {
+  tfidf: {
+    icon: '\u{1F4CA}',
+    title: 'TF-IDF (Term Frequency-Inverse Document Frequency)',
+    description: '단어의 빈도(TF)와 희소성(IDF)을 결합하여 중요도를 계산합니다.',
+    howItWorks: '문서에서 자주 등장하지만(TF\u2191), 다른 페이지에서는 드물게 나타나는(IDF\u2191) 단어일수록 높은 점수를 받습니다.',
+    bestFor: '특정 주제에 집중된 전문 용어 발견',
+  },
+  textrank: {
+    icon: '\u{1F517}',
+    title: 'TextRank (Graph-based Ranking)',
+    description: 'Google PageRank와 유사한 그래프 알고리즘으로 키워드를 순위화합니다.',
+    howItWorks: '단어들의 동시출현 관계를 그래프로 구성하고, 다른 중요 단어들과 자주 함께 나타나는 단어가 높은 점수를 받습니다.',
+    bestFor: '문맥적으로 핵심적인 단어 발견',
+  },
+  ngram: {
+    icon: '\u{1F524}',
+    title: 'N-gram CNN (TextCNN 기반 추출)',
+    description: 'N-gram 패턴과 CNN(합성곱 신경망) 개념을 결합하여 다양한 길이의 핵심 구문을 추출합니다.',
+    howItWorks: 'TextCNN처럼 다양한 크기의 필터(unigram, bigram, trigram)로 텍스트를 스캔하고, 길이별 가중치를 적용하여 중요한 N-gram 패턴을 포착합니다.',
+    bestFor: '복합 명사, 기술 용어 등 다단어 핵심 표현 발견',
+  },
+};
 
 /** Highlight keyword occurrences within a snippet string. */
 function HighlightedSnippet({ snippet, term }: { snippet: string; term: string }) {
@@ -136,13 +166,18 @@ export default memo(function KeywordPanel() {
   const pageTextContents = useStore((s) => s.pageTextContents);
   const setKeywordAlgorithm = useStore((s) => s.setKeywordAlgorithm);
   const toggleKeywordHighlight = useStore((s) => s.toggleKeywordHighlight);
+  const toggleAllKeywordHighlights = useStore((s) => s.toggleAllKeywordHighlights);
   const setCurrentPage = useStore((s) => s.setCurrentPage);
+
+  const [showAlgoInfo, setShowAlgoInfo] = useState(false);
 
   const handlePageClick = useCallback((page: number) => {
     setCurrentPage(page);
   }, [setCurrentPage]);
 
   const activeSet = useMemo(() => new Set(activeKeywords), [activeKeywords]);
+
+  const algoInfo = ALGO_INFO[keywordAlgorithm];
 
   // No PDF loaded
   if (!pdfData) return null;
@@ -196,6 +231,68 @@ export default memo(function KeywordPanel() {
           </button>
         ))}
       </div>
+
+      {/* Toolbar */}
+      {keywords && keywords.length > 0 && (
+        <div className="flex items-center justify-between px-2.5 py-1.5 border-b bg-white shrink-0">
+          <span className="text-[10px] text-gray-400">{keywords.length}개 키워드</span>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setShowAlgoInfo((v) => !v)}
+              className={`flex items-center justify-center w-6 h-6 rounded-full text-[11px] font-bold transition-colors ${
+                showAlgoInfo
+                  ? 'bg-blue-100 text-blue-600'
+                  : 'bg-gray-100 text-gray-400 hover:bg-gray-200 hover:text-gray-600'
+              }`}
+              title="알고리즘 설명 보기"
+            >
+              ?
+            </button>
+            <button
+              onClick={toggleAllKeywordHighlights}
+              className={`flex items-center gap-1 px-2 py-1 text-[11px] rounded-md transition-colors min-h-[32px] ${
+                activeKeywords.length > 0
+                  ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
+                  : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+              }`}
+              title={activeKeywords.length > 0 ? '모든 하이라이트 끄기' : '모든 하이라이트 켜기'}
+            >
+              {/* Eye icon */}
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                {activeKeywords.length > 0 ? (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                ) : (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
+                )}
+              </svg>
+              {activeKeywords.length > 0 ? '하이라이트 끄기' : '하이라이트 켜기'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Algorithm info card */}
+      {showAlgoInfo && (
+        <div className="mx-2.5 mt-2 mb-1 p-3 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg border border-blue-100">
+          <div className="flex items-start gap-2 mb-2">
+            <span className="text-lg">{algoInfo.icon}</span>
+            <div>
+              <h4 className="text-xs font-bold text-gray-800">{algoInfo.title}</h4>
+              <p className="text-[11px] text-gray-600 mt-0.5">{algoInfo.description}</p>
+            </div>
+          </div>
+          <div className="text-[10px] text-gray-500 space-y-1.5 ml-7">
+            <div>
+              <span className="font-semibold text-gray-600">작동 원리: </span>
+              {algoInfo.howItWorks}
+            </div>
+            <div>
+              <span className="font-semibold text-emerald-600">적합한 용도: </span>
+              {algoInfo.bestFor}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Content */}
       <div className="flex-1 overflow-auto p-2.5">

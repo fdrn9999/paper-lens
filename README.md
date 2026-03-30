@@ -33,7 +33,7 @@
 | **AI 논문 분석** | 논문 업로드 시 자동 요약 + 자유 질문 챗봇 (Gemini Flash 2.0, 프롬프트 인젝션 방어 내장) |
 | **PDF 업로드** | 드래그 앤 드롭 또는 클릭으로 논문 업로드 (최대 10MB) |
 | **다중 키워드 색상 검색** | 여러 검색어를 등록하여 각각 고유 색상으로 PDF 하이라이트 + 검색어별 통계 표시 |
-| **키워드 자동 추출** | TF-IDF, TextRank, N-gram 3가지 알고리즘으로 핵심 키워드 자동 추출 (100% 로컬 처리) |
+| **키워드 자동 추출** | TF-IDF, TextRank, N-gram CNN 3가지 알고리즘으로 핵심 키워드 자동 추출 (100% 로컬 처리) |
 | **드래그 번역** | 텍스트 선택 후 Gemini Flash로 즉시 한국어 번역 (한국어 텍스트 자동 감지 및 차단) |
 | **키워드 하이라이트** | 추출된 키워드를 PDF에서 고유 색상으로 하이라이트 (여러 키워드 동시 표시) |
 | **사용량 대시보드** | 헤더에서 AI 분석/번역 사용량을 실시간 퍼센트로 확인 |
@@ -56,7 +56,7 @@ PaperLens의 AI 기능은 단순 검색을 넘어 **논문 전문 분석 챗봇*
 | 상태 관리 | Zustand |
 | PDF 렌더링 | pdfjs-dist (CDN) |
 | AI | Gemini 2.0 Flash (챗봇 + 번역) |
-| 키워드 추출 | TF-IDF, TextRank, N-gram (브라우저 로컬 처리) |
+| 키워드 추출 | TF-IDF, TextRank, N-gram CNN (브라우저 로컬 처리) |
 | 배포 | Vercel Serverless Functions |
 
 ## 시스템 아키텍처
@@ -143,7 +143,7 @@ src/
 └── lib/
     ├── types.ts                # TypeScript 타입 정의
     ├── searchEngine.ts         # 검색 엔진 (Exact + CJK)
-    ├── keywordExtractor.ts     # 키워드 추출 (TF-IDF, TextRank, N-gram)
+    ├── keywordExtractor.ts     # 키워드 추출 (TF-IDF, TextRank, N-gram CNN)
     ├── pdfLoader.ts            # PDF.js CDN 로더
     ├── env.ts                  # 환경 변수 유틸
     ├── rateLimit.ts            # API Rate Limiting
