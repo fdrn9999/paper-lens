@@ -29,38 +29,10 @@ export interface SearchResult {
   charEnd: number;
   /** Present when a match spans multiple text items */
   spans?: HighlightSpan[];
-  /** True for semantic search results (affects rendering style) */
-  semantic?: boolean;
-  /** Relevance score 0-1 for semantic results */
-  relevanceScore?: number;
   /** Color for this search term's highlights (multi-term search) */
   termColor?: string;
   /** Label identifying which search term matched */
   termLabel?: string;
-}
-
-/**
- * Structured embedding progress status.
- * Store emits these codes; UI components resolve them to display text via getEmbeddingMessage().
- */
-export interface EmbeddingProgress {
-  code:
-    | 'WAIT_EXTRACTION'
-    | 'EMBED_QUOTA_EXCEEDED'
-    | 'RATE_LIMITED'
-    | 'ANALYZING'
-    | 'COMPARING_KEYWORD'
-    | 'NO_RESULTS'
-    | 'FALLBACK_RESULTS'
-    | 'TIMEOUT'
-    | 'NETWORK_ERROR'
-    | 'API_ERROR'
-    | 'EMBED_FAILED';
-  /** Batch progress (for ANALYZING) */
-  current?: number;
-  total?: number;
-  /** Server error detail */
-  detail?: string;
 }
 
 /**
@@ -99,4 +71,11 @@ export interface ExtractedKeyword {
   contexts: KeywordContext[];
   algorithm: KeywordAlgorithm;
   color: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: number;
 }

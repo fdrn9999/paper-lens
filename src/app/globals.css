@@ -112,11 +112,6 @@ input, textarea,
 
 /* When inline style sets background, it overrides the default yellow */
 
-.highlight-mark.semantic {
-  background-color: rgba(100, 180, 255, 0.35);
-  border-radius: 3px;
-}
-
 .highlight-mark.keyword {
   border-radius: 1px;
   mix-blend-mode: multiply;

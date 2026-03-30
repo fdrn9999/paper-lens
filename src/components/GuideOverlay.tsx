@@ -12,17 +12,17 @@ const GUIDE_STEPS = [
     position: 'center' as const,
   },
   {
-    title: '🔍 검색 모드 선택',
+    title: '🔍 다중 키워드 검색',
     content:
-      'Exact: 정확한 단어 일치 검색 (빠름)\nAI: 의미 기반 검색 — "AI"로 검색하면\n"Artificial Intelligence"도 함께 찾아줍니다.',
-    target: '[data-guide="search-mode"]',
+      '검색창에 키워드를 입력하고 Enter를 누르면\n검색어가 등록됩니다. 여러 키워드를 등록하면\n각각 다른 색상으로 하이라이트됩니다.',
+    target: '[data-guide="search-bar"]',
     position: 'bottom' as const,
   },
   {
-    title: '⚡ AI 검색 준비',
+    title: '🤖 AI 논문 분석',
     content:
-      'AI 모드는 문서 업로드 후 임베딩 분석이\n완료되어야 사용할 수 있습니다.\n분석 중에는 버튼이 비활성화됩니다.',
-    target: '[data-guide="search-bar"]',
+      '사이드바의 AI 탭에서 논문 요약과\n질문 답변을 받을 수 있습니다.\n논문에 대한 질문을 자유롭게 해보세요.',
+    target: '[data-guide="chat-tab"]',
     position: 'bottom' as const,
   },
   {

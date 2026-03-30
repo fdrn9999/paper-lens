@@ -68,8 +68,8 @@ export default function HelpButton() {
                   <span>입력한 단어와 <strong>정확히 일치</strong>하는 결과를 찾습니다. Ctrl+F와 유사하지만 단어 단위로 매칭합니다.</span>
                 </div>
                 <div className="flex gap-2">
-                  <span className="px-1.5 py-0.5 bg-purple-100 text-purple-700 rounded font-medium shrink-0">AI</span>
-                  <span><strong>의미적으로 유사한</strong> 문장을 AI가 찾습니다. 예: &quot;AI&quot; 검색 시 &quot;Artificial Intelligence&quot;도 발견</span>
+                  <span className="px-1.5 py-0.5 bg-purple-100 text-purple-700 rounded font-medium shrink-0">AI 분석</span>
+                  <span>사이드바 AI 탭에서 <strong>논문 자동 요약</strong>과 <strong>질문 답변</strong> 챗봇을 이용할 수 있습니다.</span>
                 </div>
               </div>
             </section>
@@ -117,7 +117,7 @@ export default function HelpButton() {
                 사용 제한
               </h4>
               <div className="text-xs text-gray-600 space-y-1">
-                <p>AI 검색과 번역은 글자 수 기반 일일 사용량이 제한됩니다. 사용량은 헤더의 사용량 버튼에서 퍼센트로 확인할 수 있습니다.</p>
+                <p>AI 분석과 번역은 글자 수 기반 일일 사용량이 제한됩니다. 사용량은 헤더의 사용량 버튼에서 퍼센트로 확인할 수 있습니다.</p>
                 <p className="text-gray-400">제한은 매일 자정(UTC)에 초기화됩니다.</p>
               </div>
             </section>

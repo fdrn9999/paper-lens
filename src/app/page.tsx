@@ -7,6 +7,7 @@ import PDFViewer from '@/components/PDFViewer';
 import SearchBar from '@/components/SearchBar';
 import ResultList from '@/components/ResultList';
 import KeywordPanel from '@/components/KeywordPanel';
+import ChatPanel from '@/components/ChatPanel';
 import PageNavigator from '@/components/PageNavigator';
 import TranslationPanel from '@/components/TranslationPanel';
 import GuideOverlay from '@/components/GuideOverlay';
@@ -140,7 +141,7 @@ export default function Home() {
             <div className="text-center">
               <p className="text-gray-600 text-sm sm:text-base leading-relaxed">
                 PDF 논문을 업로드하면 AI가 문서를 분석합니다.<br className="hidden sm:inline" />
-                키워드 검색, 의미 기반 AI 검색, 드래그 번역으로 논문을 빠르게 탐색하세요.
+                키워드 검색, AI 논문 분석, 드래그 번역으로 논문을 빠르게 탐색하세요.
               </p>
             </div>
             <FileUploader />
@@ -308,6 +309,18 @@ export default function Home() {
                 <div className="absolute bottom-0 left-2 right-2 h-0.5 bg-blue-600 rounded-full" />
               )}
             </button>
+            <button
+              onClick={() => setSidebarTab('chat')}
+              data-guide="chat-tab"
+              className={`flex-1 px-3 py-2 text-sm font-medium transition-colors relative min-h-[44px] flex items-center justify-center ${
+                sidebarTab === 'chat' ? 'text-purple-600' : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              AI
+              {sidebarTab === 'chat' && (
+                <div className="absolute bottom-0 left-2 right-2 h-0.5 bg-purple-600 rounded-full" />
+              )}
+            </button>
             {/* Close button (mobile + tablet) */}
             <button
               onClick={() => setIsSidebarOpen(false)}
@@ -319,7 +332,7 @@ export default function Home() {
               </svg>
             </button>
           </div>
-          {sidebarTab === 'search' ? <ResultList /> : <KeywordPanel />}
+          {sidebarTab === 'search' ? <ResultList /> : sidebarTab === 'keywords' ? <KeywordPanel /> : <ChatPanel />}
         </aside>
 
         {/* Main - PDF Viewer */}

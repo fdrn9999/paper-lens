@@ -37,7 +37,7 @@ function UsageBar({ label, usedPercent, usedChars, limitChars }: {
 export default function UsageButton() {
   const [isOpen, setIsOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
-  const embedQuota = useStore((s) => s.embedQuota);
+  const chatQuota = useStore((s) => s.chatQuota);
   const translateQuota = useStore((s) => s.translateQuota);
 
   // Close on click outside
@@ -62,7 +62,7 @@ export default function UsageButton() {
     return () => document.removeEventListener('keydown', handleKey);
   }, [isOpen]);
 
-  const maxPct = Math.max(embedQuota?.usedPercent ?? 0, translateQuota?.usedPercent ?? 0);
+  const maxPct = Math.max(chatQuota?.usedPercent ?? 0, translateQuota?.usedPercent ?? 0);
   const indicatorColor = maxPct >= 90 ? 'text-red-500' : maxPct >= 70 ? 'text-amber-500' : 'text-gray-500';
 
   return (
@@ -91,10 +91,10 @@ export default function UsageButton() {
 
           <div className="p-3 space-y-3">
             <UsageBar
-              label="AI 검색"
-              usedPercent={embedQuota?.usedPercent ?? 0}
-              usedChars={embedQuota?.usedChars ?? 0}
-              limitChars={embedQuota?.limitChars ?? 0}
+              label="AI 분석"
+              usedPercent={chatQuota?.usedPercent ?? 0}
+              usedChars={chatQuota?.usedChars ?? 0}
+              limitChars={chatQuota?.limitChars ?? 0}
             />
             <UsageBar
               label="번역"
@@ -102,7 +102,7 @@ export default function UsageButton() {
               usedChars={translateQuota?.usedChars ?? 0}
               limitChars={translateQuota?.limitChars ?? 0}
             />
-            {!embedQuota && !translateQuota && (
+            {!chatQuota && !translateQuota && (
               <p className="text-xs text-gray-400 text-center py-2">
                 아직 사용 기록이 없습니다.
               </p>

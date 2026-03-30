@@ -406,10 +406,10 @@ export default memo(function PDFViewer() {
         }
 
         const div = document.createElement('div');
-        div.className = result.semantic ? 'highlight-mark semantic' : 'highlight-mark';
+        div.className = 'highlight-mark';
         div.dataset.resultId = result.id;
         const vInset = Math.max(wordHeight * 0.12, 1);
-        const bgStyle = result.termColor && !result.semantic
+        const bgStyle = result.termColor
           ? `background-color:${result.termColor}66;`
           : '';
         div.style.cssText = `left:${wordLeft}px;top:${wordTop + vInset}px;width:${Math.max(wordWidth, 8)}px;height:${Math.max(wordHeight - vInset * 2, 4)}px;${bgStyle}`;
@@ -535,10 +535,10 @@ export default memo(function PDFViewer() {
         }
 
         const div = document.createElement('div');
-        div.className = result.semantic ? 'highlight-mark semantic' : 'highlight-mark';
+        div.className = 'highlight-mark';
         div.dataset.resultId = result.id;
         const vInset = Math.max(wordHeight * 0.12, 1);
-        const bgStyle = result.termColor && !result.semantic
+        const bgStyle = result.termColor
           ? `background-color:${result.termColor}66;`
           : '';
         div.style.cssText = `left:${wordLeft}px;top:${wordTop + vInset}px;width:${Math.max(wordWidth, 8)}px;height:${Math.max(wordHeight - vInset * 2, 4)}px;${bgStyle}`;

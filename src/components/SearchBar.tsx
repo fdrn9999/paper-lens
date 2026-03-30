@@ -2,8 +2,6 @@
 
 import { useCallback, useRef, useState, useEffect, memo } from 'react';
 import useStore from '@/store/useStore';
-import { getEmbeddingMessage } from '@/lib/messages';
-import QuotaIndicator from '@/components/QuotaIndicator';
 
 export default memo(function SearchBar() {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -12,32 +10,14 @@ export default memo(function SearchBar() {
   const [isDebouncing, setIsDebouncing] = useState(false);
 
   const searchQuery = useStore((s) => s.searchQuery);
-  const searchMode = useStore((s) => s.searchMode);
   const searchResults = useStore((s) => s.searchResults);
   const currentResultIndex = useStore((s) => s.currentResultIndex);
   const caseSensitive = useStore((s) => s.caseSensitive);
-  const isEmbedding = useStore((s) => s.isEmbedding);
   const isSearching = useStore((s) => s.isSearching);
-  const embeddingProgress = useStore((s) => s.embeddingProgress);
-  const isExtracting = useStore((s) => s.isExtracting);
-  const extractedPageCount = useStore((s) => s.pageTextContents.length);
-  const totalPages = useStore((s) => s.totalPages);
-  const embedQuota = useStore((s) => s.embedQuota);
-  const retryAvailableAt = useStore((s) => s.embedRetryAt);
   const pdfData = useStore((s) => s.pdfData);
   const searchTerms = useStore((s) => s.searchTerms);
 
-  // Countdown timer for rate limit feedback
-  const [retrySec, setRetrySec] = useState(0);
-  useEffect(() => {
-    if (!retryAvailableAt) { setRetrySec(0); return; }
-    const tick = () => setRetrySec(Math.max(0, Math.ceil((retryAvailableAt - Date.now()) / 1000)));
-    tick();
-    const id = setInterval(tick, 1000);
-    return () => clearInterval(id);
-  }, [retryAvailableAt]);
   const setSearchQuery = useStore((s) => s.setSearchQuery);
-  const setSearchMode = useStore((s) => s.setSearchMode);
   const setCaseSensitive = useStore((s) => s.setCaseSensitive);
   const search = useStore((s) => s.search);
   const clearSearch = useStore((s) => s.clearSearch);
@@ -57,13 +37,13 @@ export default memo(function SearchBar() {
 
     if (debounceRef.current) clearTimeout(debounceRef.current);
 
-    // In exact mode with searchTerms, don't auto-search on typing (user adds terms with Enter)
-    if (searchMode === 'exact' && searchTerms.length > 0) {
+    // With searchTerms, don't auto-search on typing (user adds terms with Enter)
+    if (searchTerms.length > 0) {
       setIsDebouncing(false);
       return;
     }
 
-    if (searchMode === 'exact' && value.trim()) {
+    if (value.trim()) {
       setIsDebouncing(true);
       debounceRef.current = setTimeout(() => {
         setIsDebouncing(false);
@@ -78,7 +58,7 @@ export default memo(function SearchBar() {
         lastSearchedRef.current = '';
       }
     }
-  }, [searchMode, setSearchQuery, search, clearSearch, searchTerms.length]);
+  }, [setSearchQuery, search, clearSearch, searchTerms.length]);
 
   const handleSearch = useCallback(
     (e: React.FormEvent) => {
@@ -87,20 +67,10 @@ export default memo(function SearchBar() {
       const q = searchQuery.trim();
       if (!q) return;
 
-      if (searchMode === 'exact') {
-        // In exact mode: Enter adds a search term
-        addSearchTerm(q);
-      } else {
-        // In semantic mode: Enter searches
-        if (q === lastSearchedRef.current && searchResults.length > 0) {
-          nextResult();
-        } else {
-          search();
-          lastSearchedRef.current = q;
-        }
-      }
+      // Enter adds a search term
+      addSearchTerm(q);
     },
-    [searchMode, search, searchQuery, searchResults.length, nextResult, addSearchTerm]
+    [searchQuery, addSearchTerm]
   );
 
   const handleKeyDown = useCallback(
@@ -111,7 +81,7 @@ export default memo(function SearchBar() {
         prevResult();
       } else if (e.key === 'Enter') {
         // Handled by form onSubmit
-      } else if (e.key === 'Backspace' && !searchQuery && searchTerms.length > 0 && searchMode === 'exact') {
+      } else if (e.key === 'Backspace' && !searchQuery && searchTerms.length > 0) {
         // Backspace on empty input removes the last term
         e.preventDefault();
         removeSearchTerm(searchTerms[searchTerms.length - 1].id);
@@ -122,7 +92,7 @@ export default memo(function SearchBar() {
         inputRef.current?.blur();
       }
     },
-    [prevResult, clearSearch, searchQuery, searchTerms, searchMode, removeSearchTerm]
+    [prevResult, clearSearch, searchQuery, searchTerms, removeSearchTerm]
   );
 
   if (!pdfData) return null;
@@ -143,8 +113,8 @@ export default memo(function SearchBar() {
                        focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent bg-white cursor-text"
             onClick={() => inputRef.current?.focus()}
           >
-            {/* Search term chips (exact mode only) */}
-            {searchMode === 'exact' && searchTerms.map((st) => (
+            {/* Search term chips */}
+            {searchTerms.map((st) => (
               <span
                 key={st.id}
                 className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs font-medium text-white shrink-0"
@@ -171,11 +141,9 @@ export default memo(function SearchBar() {
               onChange={handleInputChange}
               onKeyDown={handleKeyDown}
               placeholder={
-                searchMode === 'exact'
-                  ? searchTerms.length > 0
-                    ? '검색어 추가 (Enter)'
-                    : '검색어 입력 후 Enter (여러 단어 등록 가능)'
-                  : 'AI 의미 기반 검색'
+                searchTerms.length > 0
+                  ? '검색어 추가 (Enter)'
+                  : '검색어 입력 후 Enter (여러 단어 등록 가능)'
               }
               aria-label="검색어 입력"
               className="flex-1 min-w-[80px] py-1 text-sm bg-transparent focus:outline-none"
@@ -199,85 +167,28 @@ export default memo(function SearchBar() {
             className="px-3 sm:px-4 py-2 text-sm bg-blue-600 text-white rounded-lg
                        hover:bg-blue-700 active:bg-blue-800 transition-colors font-medium shrink-0 min-h-[44px]"
           >
-            {searchMode === 'exact' ? '추가' : '검색'}
+            추가
           </button>
         )}
       </form>
 
       {/* Row 2 on mobile / same row on sm+: mode toggle, case sensitivity, nav, indicators */}
       <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap sm:flex-nowrap">
-        {/* Search mode toggle */}
-        <div data-guide="search-mode" className="flex rounded-lg border border-gray-300 overflow-hidden text-xs shrink-0">
-          <button
-            onClick={() => { if (debounceRef.current) { clearTimeout(debounceRef.current); debounceRef.current = null; setIsDebouncing(false); } setSearchMode('exact'); }}
-            className={`px-2.5 py-2 min-h-[44px] sm:min-h-0 transition-colors flex items-center gap-1 ${
-              searchMode === 'exact'
-                ? 'bg-blue-600 text-white'
-                : 'bg-white text-gray-600 hover:bg-gray-50'
-            }`}
-            title="정확한 단어 일치 검색 — 여러 검색어를 등록하여 색상별로 구분할 수 있습니다."
-            aria-label="정확한 단어 일치 검색"
-            aria-pressed={searchMode === 'exact'}
-          >
-            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-            정확
-          </button>
-          <button
-            onClick={() => { if (debounceRef.current) { clearTimeout(debounceRef.current); debounceRef.current = null; setIsDebouncing(false); } setSearchMode('semantic'); }}
-            disabled={isExtracting}
-            className={`px-2.5 py-2 min-h-[44px] sm:min-h-0 transition-colors flex items-center gap-1 ${
-              searchMode === 'semantic'
-                ? 'bg-purple-600 text-white'
-                : isExtracting
-                  ? 'bg-gray-100 text-gray-300 cursor-not-allowed'
-                  : 'bg-white text-gray-600 hover:bg-gray-50'
-            }`}
-            title={isExtracting
-              ? `텍스트 추출 중 (${extractedPageCount}/${totalPages}) — 완료 후 사용 가능`
-              : 'AI 의미 기반 검색 — 의미적으로 유사한 문장을 AI가 찾습니다.'}
-            aria-label="AI 의미 기반 검색"
-            aria-pressed={searchMode === 'semantic'}
-          >
-            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-            </svg>
-            AI
-          </button>
-        </div>
-
-        {/* Inline extraction progress indicator */}
-        {isExtracting && (
-          <span className={`text-[10px] whitespace-nowrap flex items-center gap-1 ${searchMode === 'semantic' ? 'text-purple-500' : 'text-amber-500 md:hidden'}`}>
-            {searchMode === 'semantic' && (
-              <span className="animate-spin inline-block w-3 h-3 border-[1.5px] border-purple-400 border-t-transparent rounded-full" />
-            )}
-            {searchMode === 'semantic'
-              ? `문서 분석 중 (${Math.round((extractedPageCount / Math.max(totalPages, 1)) * 100)}%)`
-              : `${extractedPageCount}/${totalPages}`}
-          </span>
-        )}
-
-        {/* Case sensitivity — always rendered to prevent layout shift, invisible when not exact */}
+        {/* Case sensitivity */}
         <button
           onClick={() => setCaseSensitive(!caseSensitive)}
           title={caseSensitive ? '대소문자 구분 ON' : '대소문자 구분 OFF'}
-          aria-hidden={searchMode !== 'exact' ? true : undefined}
-          tabIndex={searchMode !== 'exact' ? -1 : undefined}
           className={`px-2 py-2 min-h-[44px] sm:min-h-0 text-xs font-mono rounded-lg border transition-colors shrink-0
-            ${searchMode !== 'exact'
-              ? 'hidden'
-              : caseSensitive
-                ? 'bg-blue-100 border-blue-300 text-blue-700'
-                : 'bg-gray-100 border-gray-300 text-gray-500'
+            ${caseSensitive
+              ? 'bg-blue-100 border-blue-300 text-blue-700'
+              : 'bg-gray-100 border-gray-300 text-gray-500'
             }`}
         >
           Aa
         </button>
 
-        {/* Clear all terms button (exact mode with terms) */}
-        {searchMode === 'exact' && searchTerms.length > 1 && (
+        {/* Clear all terms button */}
+        {searchTerms.length > 1 && (
           <button
             onClick={() => { clearSearch(); lastSearchedRef.current = ''; }}
             className="px-2 py-2 min-h-[44px] sm:min-h-0 text-xs rounded-lg border border-gray-300 bg-gray-100 text-gray-500 hover:bg-red-50 hover:border-red-300 hover:text-red-500 transition-colors shrink-0"
@@ -312,19 +223,6 @@ export default memo(function SearchBar() {
           <span className="text-xs text-gray-400 whitespace-nowrap animate-pulse">검색 중...</span>
         )}
 
-        {/* Embedding progress / quota / countdown indicator */}
-        {retrySec > 0 ? (
-          <span className="text-xs text-red-500 whitespace-nowrap">{retrySec}초 후 재시도</span>
-        ) : embeddingProgress ? (
-          <span className="text-xs text-purple-600 whitespace-nowrap animate-pulse">{getEmbeddingMessage(embeddingProgress)}</span>
-        ) : searchMode === 'semantic' && embedQuota ? (
-          <QuotaIndicator
-            label="AI"
-            usedPercent={embedQuota.usedPercent}
-            color="purple"
-            compact
-          />
-        ) : null}
       </div>
     </div>
   );

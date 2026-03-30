@@ -58,6 +58,7 @@ function lazyDailyCleanup() {
 export const DAILY_CHAR_LIMITS: Record<string, number> = {
   translate: parseInt(process.env.DAILY_TRANSLATE_CHAR_LIMIT || '50000', 10),
   embed: parseInt(process.env.DAILY_EMBED_CHAR_LIMIT || '100000', 10),
+  chat: parseInt(process.env.DAILY_CHAT_CHAR_LIMIT || '100000', 10),
 };
 
 // ===== Global daily budget (all users combined, character-based) =====
@@ -66,6 +67,7 @@ const globalDailyUsage = new Map<string, { chars: number; resetDate: string }>()
 const DAILY_GLOBAL_CHAR_LIMITS: Record<string, number> = {
   translate: parseInt(process.env.DAILY_GLOBAL_TRANSLATE_CHAR_LIMIT || '500000', 10),
   embed: parseInt(process.env.DAILY_GLOBAL_EMBED_CHAR_LIMIT || '1000000', 10),
+  chat: parseInt(process.env.DAILY_GLOBAL_CHAT_CHAR_LIMIT || '1000000', 10),
 };
 
 export function checkGlobalQuota(endpoint: string, charCount: number): { allowed: boolean; usedChars: number; limitChars: number; usedPercent: number } {

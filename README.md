@@ -9,14 +9,14 @@
 </p>
 
 <p align="center">
-  AI 기반 PDF 논문 탐색 도구 &mdash; 다중 키워드 색상 검색, 키워드 자동 추출, 의미 기반 AI 검색, 드래그 번역까지 한 곳에서
+  AI 기반 PDF 논문 탐색 도구 &mdash; AI 논문 분석 챗봇, 다중 키워드 색상 검색, 키워드 자동 추출, 드래그 번역까지 한 곳에서
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/Next.js-15-black?logo=nextdotjs" alt="Next.js" />
   <img src="https://img.shields.io/badge/TypeScript-5.7-blue?logo=typescript" alt="TypeScript" />
   <img src="https://img.shields.io/badge/Tailwind_CSS-3.4-38bdf8?logo=tailwindcss" alt="Tailwind" />
-  <img src="https://img.shields.io/badge/Gemini_AI-Flash_3.0-4285F4?logo=google" alt="Gemini" />
+  <img src="https://img.shields.io/badge/Gemini_AI-Flash_2.0-4285F4?logo=google" alt="Gemini" />
   <img src="https://img.shields.io/badge/License-MIT-green" alt="License" />
 </p>
 
@@ -30,25 +30,23 @@
 
 | 기능 | 설명 |
 |------|------|
+| **AI 논문 분석** | 논문 업로드 시 자동 요약 + 자유 질문 챗봇 (Gemini Flash 2.0, 프롬프트 인젝션 방어 내장) |
 | **PDF 업로드** | 드래그 앤 드롭 또는 클릭으로 논문 업로드 (최대 10MB) |
-| **다중 키워드 색상 검색** | 여러 검색어를 등록하여 각각 고유 색상으로 PDF 하이라이트 + 검색어별 통계(건수/페이지) 표시 — 최대 10색 동시 표시 |
+| **다중 키워드 색상 검색** | 여러 검색어를 등록하여 각각 고유 색상으로 PDF 하이라이트 + 검색어별 통계 표시 |
 | **키워드 자동 추출** | TF-IDF, TextRank, N-gram 3가지 알고리즘으로 핵심 키워드 자동 추출 (100% 로컬 처리) |
-| **Exact 검색** | 토큰 기반 정확한 단어 매칭 — 한글/영문 지원, 부분 문자열 제거 |
-| **AI 시맨틱 검색** | Gemini Embedding으로 의미 기반 하이브리드 검색 (exact + semantic RRF 병합, MMR 중복 제거) |
 | **드래그 번역** | 텍스트 선택 후 Gemini Flash로 즉시 한국어 번역 (한국어 텍스트 자동 감지 및 차단) |
 | **키워드 하이라이트** | 추출된 키워드를 PDF에서 고유 색상으로 하이라이트 (여러 키워드 동시 표시) |
-| **사용량 대시보드** | 헤더에서 AI 검색/번역 사용량을 실시간 퍼센트로 확인 |
-| **반응형 디자인** | 데스크톱 / 모바일 대응, 핀치 줌 지원 |
+| **사용량 대시보드** | 헤더에서 AI 분석/번역 사용량을 실시간 퍼센트로 확인 |
+| **반응형 디자인** | 데스크톱 / 태블릿 / 모바일 완전 대응, 핀치 줌 지원 |
 
-## 검색이 다릅니다
+## AI 논문 분석
 
-기존 PDF 뷰어의 `Ctrl+F`는 단순 문자열 매칭이라 "ai"를 검색하면 cl**ai**m, s**ai**d 같은 불필요한 결과가 포함됩니다.
+PaperLens의 AI 기능은 단순 검색을 넘어 **논문 전문 분석 챗봇**을 제공합니다:
 
-PaperLens는 **세 가지 검색 레벨**로 이 문제를 해결합니다:
-
-- **Level 1 — Exact Match**: 단어 경계를 인식하는 토큰 기반 검색으로 정확한 단어만 매칭
-- **Level 2 — Multi-Term Color Search**: 여러 검색어를 동시에 등록하고, 각 검색어를 고유 색상으로 PDF에 하이라이트하여 한눈에 비교
-- **Level 3 — AI Semantic Search**: 문장 단위 임베딩을 비교하여 동의어/유사 표현까지 탐색
+- **자동 요약**: 논문 업로드 시 제목, 목적, 방법론, 결과, 결론을 구조화하여 자동 요약
+- **자유 질문**: "핵심 연구 방법은?", "한계점은?", "주요 결론은?" 등 논문에 대한 자유로운 질문
+- **보안**: 프롬프트 인젝션 방어 내장 — 논문 외적인 질문이나 시스템 우회 시도를 자동 차단
+- **사용량 관리**: 일일 사용량 제한으로 안정적인 서비스 운영
 
 ## 기술 스택
 
@@ -57,8 +55,8 @@ PaperLens는 **세 가지 검색 레벨**로 이 문제를 해결합니다:
 | Frontend | Next.js 15 (App Router), TypeScript, Tailwind CSS |
 | 상태 관리 | Zustand |
 | PDF 렌더링 | pdfjs-dist (CDN) |
-| AI | Gemini 3.0 Flash (번역), Gemini text-embedding-004 (시맨틱 검색) |
-| 키워드 추출 | TF-IDF, TextRank, N-gram CNN (브라우저 로컬 처리) |
+| AI | Gemini 2.0 Flash (챗봇 + 번역) |
+| 키워드 추출 | TF-IDF, TextRank, N-gram (브라우저 로컬 처리) |
 | 배포 | Vercel Serverless Functions |
 
 ## 시스템 아키텍처
@@ -68,16 +66,15 @@ PaperLens는 **세 가지 검색 레벨**로 이 문제를 해결합니다:
    ├── PDF 렌더링 (pdfjs-dist CDN)
    ├── 텍스트 추출 (로컬)
    ├── 키워드 추출 (로컬, 3가지 알고리즘)
-   ├── Exact 검색 (로컬)
-   └── 다중 검색어 색상 관리
+   ├── 다중 검색어 색상 관리 (로컬)
+   └── AI 챗 UI (사이드바 탭)
         |
 [Vercel Serverless Functions]
-   ├── /api/embed      → 문장 임베딩 생성
-   ├── /api/translate   → 번역 처리
+   ├── /api/chat       → AI 논문 분석 + Q&A (프롬프트 인젝션 방어)
+   └── /api/translate   → 번역 처리
         |
 [Google Gemini API]
-   ├── Gemini 3.0 Flash       → 번역
-   └── text-embedding-004     → 임베딩
+   └── Gemini 2.0 Flash → 챗봇 + 번역
 ```
 
 ## 시작하기
@@ -112,8 +109,9 @@ http://localhost:3000 에서 확인할 수 있습니다.
 | 변수 | 설명 | 필수 |
 |------|------|:----:|
 | `GEMINI_API_KEY` | Google Gemini API 키 | O |
-| `DAILY_GLOBAL_TRANSLATE_LIMIT` | 일일 번역 요청 한도 (기본 500) | |
-| `DAILY_GLOBAL_EMBED_LIMIT` | 일일 임베딩 요청 한도 (기본 200) | |
+| `DAILY_GLOBAL_TRANSLATE_LIMIT` | 일일 번역 글로벌 한도 (기본 500K자) | |
+| `DAILY_GLOBAL_CHAT_CHAR_LIMIT` | 일일 AI 분석 글로벌 한도 (기본 1M자) | |
+| `DAILY_CHAT_CHAR_LIMIT` | 일일 AI 분석 사용자별 한도 (기본 100K자) | |
 
 ## 프로젝트 구조
 
@@ -124,13 +122,14 @@ src/
 │   ├── page.tsx                # 메인 페이지
 │   ├── globals.css             # 글로벌 스타일
 │   └── api/
-│       ├── translate/route.ts  # Gemini 번역 API
-│       └── embed/route.ts      # Gemini 임베딩 API
+│       ├── chat/route.ts       # AI 챗봇 API (프롬프트 인젝션 방어)
+│       └── translate/route.ts  # Gemini 번역 API
 ├── components/
 │   ├── FileUploader.tsx        # PDF 업로드 (클릭 + 드래그 앤 드롭)
 │   ├── PDFViewer.tsx           # PDF 렌더링 + 색상별 하이라이트
-│   ├── SearchBar.tsx           # 다중 검색어 칩 입력 + 모드 토글
+│   ├── SearchBar.tsx           # 다중 검색어 칩 입력
 │   ├── ResultList.tsx          # 검색 결과 리스트 + 검색어 색상 배지
+│   ├── ChatPanel.tsx           # AI 논문 분석 챗봇 패널
 │   ├── KeywordPanel.tsx        # 키워드 추출 결과 패널
 │   ├── PageNavigator.tsx       # 페이지 탐색 + 줌
 │   ├── TranslationPanel.tsx    # 번역 결과 패널
@@ -161,8 +160,6 @@ vercel
 # Vercel 대시보드에서 환경 변수 설정
 # GEMINI_API_KEY = your_api_key
 ```
-
-> **참고**: Vercel Serverless 요청 body 제한(4.5MB)으로 인해, 대용량 PDF는 클라이언트에서 텍스트를 추출한 후 텍스트만 서버로 전송합니다.
 
 ## 라이선스
 
