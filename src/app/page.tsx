@@ -13,7 +13,6 @@ import TranslationPanel from '@/components/TranslationPanel';
 import GuideOverlay from '@/components/GuideOverlay';
 import HelpButton from '@/components/HelpButton';
 import UsageButton from '@/components/UsageButton';
-import QuotaIndicator from '@/components/QuotaIndicator';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import ToastContainer from '@/components/Toast';
 
@@ -33,10 +32,8 @@ export default function Home() {
   const sidebarTab = useStore((s) => s.sidebarTab);
   const setSidebarTab = useStore((s) => s.setSidebarTab);
   const fetchQuota = useStore((s) => s.fetchQuota);
-  const translateQuota = useStore((s) => s.translateQuota);
-  const chatQuota = useStore((s) => s.chatQuota);
 
-  // Fetch quota on mount so header shows usage immediately
+  // Fetch quota on mount so UsageButton dropdown has data
   useEffect(() => { fetchQuota(); }, [fetchQuota]);
 
   // Auto-start guide for first-time users after PDF loads
@@ -163,10 +160,6 @@ export default function Home() {
           </div>
           <p className="text-sm text-gray-500 hidden sm:block">AI 기반 논문 탐색 도구</p>
           <div className="flex items-center gap-2">
-            <div className="flex items-center gap-3">
-              <QuotaIndicator label="AI" usedPercent={chatQuota?.usedPercent ?? 0} color="purple" compact />
-              <QuotaIndicator label="번역" usedPercent={translateQuota?.usedPercent ?? 0} color="blue" compact />
-            </div>
             <UsageButton />
             <HelpButton />
           </div>
@@ -286,12 +279,8 @@ export default function Home() {
           <SearchBar />
         </div>
 
-        {/* Quota + HelpButton for sm+ (hidden on mobile, shown in top row instead) */}
-        <div className="hidden sm:flex items-center gap-2 shrink-0">
-          <div className="flex items-center gap-3 mr-1">
-            <QuotaIndicator label="AI" usedPercent={chatQuota?.usedPercent ?? 0} color="purple" compact />
-            <QuotaIndicator label="번역" usedPercent={translateQuota?.usedPercent ?? 0} color="blue" compact />
-          </div>
+        {/* UsageButton + HelpButton for sm+ */}
+        <div className="hidden sm:flex items-center gap-1 shrink-0">
           <UsageButton />
           <HelpButton />
         </div>
