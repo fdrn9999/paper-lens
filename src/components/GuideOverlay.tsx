@@ -142,10 +142,13 @@ export default function GuideOverlay() {
 
     const rect = el.getBoundingClientRect();
     const padding = 8;
+    const maxW = window.innerWidth;
+    const clampedLeft = Math.max(0, rect.left - padding);
+    const clampedWidth = Math.min(rect.width + padding * 2, maxW - clampedLeft);
     setSpotlight({
       top: rect.top - padding,
-      left: Math.max(0, rect.left - padding),
-      width: rect.width + padding * 2,
+      left: clampedLeft,
+      width: clampedWidth,
       height: rect.height + padding * 2,
     });
 
@@ -185,7 +188,7 @@ export default function GuideOverlay() {
   const isLast = tutorialStep === GUIDE_STEPS.length - 1;
 
   return (
-    <div className="fixed inset-0 z-[100]" role="dialog" aria-modal="true" aria-label="사용 가이드">
+    <div className="fixed inset-0 z-[200]" role="dialog" aria-modal="true" aria-label="사용 가이드">
       {/* Backdrop — only shown when there's no spotlight (welcome screen).
           When spotlight is active, the boxShadow handles dimming to avoid double-opacity. */}
       <div
@@ -203,7 +206,7 @@ export default function GuideOverlay() {
             width: spotlight.width,
             height: spotlight.height,
             boxShadow: '0 0 0 9999px rgba(0,0,0,0.6)',
-            zIndex: 101,
+            zIndex: 201,
             pointerEvents: 'none',
           }}
         />
@@ -212,7 +215,7 @@ export default function GuideOverlay() {
       {/* Tooltip / Modal */}
       {isCenter ? (
         /* Welcome modal (centered) */
-        <div className="absolute inset-0 flex items-center justify-center" style={{ zIndex: 102 }}>
+        <div className="absolute inset-0 flex items-center justify-center" style={{ zIndex: 202 }}>
           <div className="bg-white rounded-2xl shadow-2xl p-6 sm:p-8 max-w-[calc(100vw-2rem)] sm:max-w-sm mx-4 text-center animate-in zoom-in">
             <div className="text-5xl mb-4">🔍</div>
             <h2 className="text-lg sm:text-xl font-bold text-gray-800 mb-3">{step.title}</h2>
@@ -240,7 +243,7 @@ export default function GuideOverlay() {
         /* Step tooltip (positioned) */
         <div
           className="absolute bg-white rounded-xl shadow-2xl p-5 max-w-[min(300px,calc(100vw-1.5rem))] sm:max-w-[min(340px,calc(100vw-2rem))] animate-in fade-in"
-          style={{ top: tooltipPos.top, left: tooltipPos.left, zIndex: 102 }}
+          style={{ top: tooltipPos.top, left: tooltipPos.left, zIndex: 202 }}
         >
           <h3 className="text-base font-bold text-gray-800 mb-2">{step.title}</h3>
           {step.content === '__VIEWER_MODE__' ? (

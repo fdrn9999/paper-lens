@@ -16,7 +16,7 @@ export function getTranslationErrorMessage(code: TranslationErrorCode, detail?: 
     case 'NETWORK_ERROR':
       return '네트워크 오류가 발생했습니다. 인터넷 연결을 확인해주세요.';
     case 'ALREADY_KOREAN':
-      return '이미 한국어 텍스트입니다. 영어 텍스트를 선택해주세요.';
+      return '이미 한국어 텍스트입니다. 영어 텍스트를 선택하면 한국어로 번역됩니다.';
     default:
       return '알 수 없는 오류가 발생했습니다.';
   }

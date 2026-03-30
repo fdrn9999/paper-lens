@@ -1,6 +1,6 @@
 'use client';
 
-import { memo, useCallback, useEffect, useRef, useState } from 'react';
+import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
 import useStore from '@/store/useStore';
 import QuotaIndicator from '@/components/QuotaIndicator';
 
@@ -32,7 +32,13 @@ function FormattedText({ text }: { text: string }) {
           return (
             <div key={i} className="flex gap-1.5 pl-1">
               <span className="text-gray-400 shrink-0">•</span>
-              <span>{formatted.slice(0).map((f, fi) => <span key={fi}>{fi === 0 && typeof f === 'object' ? { ...f, props: { ...f.props, children: String(f.props.children).replace(/^[-•]\s/, '') } } : f}</span>)}</span>
+              <span>{formatted.slice(0).map((f, fi) => {
+                if (fi === 0 && typeof f === 'object' && f !== null && 'props' in f) {
+                  const el = f as React.ReactElement<{ children?: string }>;
+                  return <span key={fi}>{React.cloneElement(el, {}, String(el.props.children ?? '').replace(/^[-•]\s/, ''))}</span>;
+                }
+                return <span key={fi}>{f}</span>;
+              })}</span>
             </div>
           );
         }
@@ -189,7 +195,7 @@ export default memo(function ChatPanel() {
               confirmClearTimerRef.current = setTimeout(() => setConfirmClear(false), 3000);
             }
           }}
-          className={`p-1.5 rounded-md transition-colors shrink-0 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center gap-1 ${
+          className={`p-1.5 rounded-md transition-colors shrink-0 min-w-[44px] min-h-[44px] lg:min-w-0 lg:min-h-0 flex items-center justify-center gap-1 ${
             confirmClear
               ? 'text-red-600 bg-red-50 hover:bg-red-100'
               : 'text-gray-400 hover:text-red-500 hover:bg-red-50'
@@ -271,7 +277,7 @@ export default memo(function ChatPanel() {
                       navigator.clipboard.writeText(msg.content);
                       window.dispatchEvent(new CustomEvent('paperlens-toast', { detail: { text: '복사되었습니다.', type: 'success' } }));
                     }}
-                    className="mt-1 p-1 rounded hover:bg-gray-100 text-gray-300 hover:text-gray-500 transition-colors"
+                    className="min-w-[36px] min-h-[36px] flex items-center justify-center rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
                     title="복사"
                     aria-label="메시지 복사"
                   >

@@ -143,7 +143,7 @@ export default memo(function SearchBar() {
               placeholder={
                 searchTerms.length > 0
                   ? '검색어 추가 (Enter)'
-                  : '검색어 입력 후 Enter (여러 단어 등록 가능)'
+                  : '검색어 입력 (Enter)'
               }
               aria-label="검색어 입력"
               className="flex-1 min-w-[80px] py-1 text-sm bg-transparent focus:outline-none"

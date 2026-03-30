@@ -49,7 +49,7 @@ export default function HelpButton() {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 top-full mt-2 w-80 max-w-[calc(100vw-1rem)] bg-white rounded-xl shadow-2xl border border-gray-200 z-50 overflow-hidden animate-in fade-in">
+        <div className="absolute right-0 top-full mt-2 w-72 sm:w-80 max-w-[calc(100vw-1rem)] bg-white rounded-xl shadow-2xl border border-gray-200 z-50 overflow-hidden animate-in fade-in">
           <div className="p-4 border-b bg-gradient-to-r from-blue-50 to-purple-50">
             <h3 className="font-bold text-gray-800">PaperLens 사용 가이드</h3>
             <p className="text-xs text-gray-500 mt-1">논문을 탐색하는 새로운 방법</p>
@@ -123,7 +123,7 @@ export default function HelpButton() {
               </h4>
               <div className="text-xs text-gray-600 space-y-1">
                 <p>AI 분석과 번역은 글자 수 기반 일일 사용량이 제한됩니다. 사용량은 헤더의 사용량 버튼에서 퍼센트로 확인할 수 있습니다.</p>
-                <p className="text-gray-400">제한은 매일 자정(UTC)에 초기화됩니다.</p>
+                <p className="text-gray-400">제한은 매일 자정(KST, 한국시간)에 초기화됩니다.</p>
               </div>
             </section>
 
@@ -141,7 +141,7 @@ export default function HelpButton() {
                   <p><strong>N-gram</strong> — 복합 명사/구문 패턴 추출</p>
                 </div>
                 <p>키워드 카드를 클릭하면 PDF에서 해당 키워드가 고유 색상으로 하이라이트됩니다.</p>
-                <p className="text-gray-400">&lsquo;사용자&rsquo; 탭에서 키워드를 직접 추가할 수도 있습니다.</p>
+                <p className="text-gray-400">키워드 카드의 검색 아이콘을 클릭하면 해당 키워드를 검색어에 추가할 수 있습니다.</p>
               </div>
             </section>
           </div>

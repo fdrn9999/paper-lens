@@ -12,6 +12,7 @@ export default memo(function PageNavigator() {
   const pdfData = useStore((s) => s.pdfData);
   const isExtracting = useStore((s) => s.isExtracting);
   const pageTextContents = useStore((s) => s.pageTextContents);
+  const fitScale = useStore((s) => s.fitScale);
   const viewerMode = useStore((s) => s.viewerMode);
   const setViewerMode = useStore((s) => s.setViewerMode);
 
@@ -135,7 +136,7 @@ export default memo(function PageNavigator() {
           −
         </button>
         <button
-          onClick={() => setScale(1.5)}
+          onClick={() => setScale(fitScale)}
           className="text-gray-600 min-w-[50px] text-center text-sm hover:bg-gray-100 rounded px-1 py-0.5 transition-colors"
           title="기본 크기로 복원"
           aria-label="기본 크기로 복원"

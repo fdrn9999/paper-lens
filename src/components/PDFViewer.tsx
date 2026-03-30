@@ -33,6 +33,7 @@ export default memo(function PDFViewer() {
   const setSelectedText = useStore((s) => s.setSelectedText);
   const setScale = useStore((s) => s.setScale);
   const setIsExtracting = useStore((s) => s.setIsExtracting);
+  const setFitScale = useStore((s) => s.setFitScale);
   const translate = useStore((s) => s.translate);
   const selectedText = useStore((s) => s.selectedText);
   const reset = useStore((s) => s.reset);
@@ -109,6 +110,7 @@ export default memo(function PDFViewer() {
         if (containerWidth > 0 && viewport.width > 0) {
           const fitScale = Math.min((containerWidth - 32) / viewport.width, 2.5);
           setScale(Math.max(0.5, fitScale));
+          setFitScale(Math.max(0.5, fitScale));
         }
       } catch { /* ignore */ }
     };
@@ -125,7 +127,7 @@ export default memo(function PDFViewer() {
       window.removeEventListener('resize', onResize);
       clearTimeout(resizeTimer);
     };
-  }, [pdfDoc, setScale, viewerMode]);
+  }, [pdfDoc, setScale, setFitScale, viewerMode]);
 
   // ===== Pinch-to-zoom for mobile/tablet =====
   const scaleRef = useRef(scale);
@@ -889,20 +891,14 @@ export default memo(function PDFViewer() {
 
     if (text && text.length > 0 && anchor && contentContainer?.contains(anchor)) {
       setSelectedText(text);
+      const x = Math.min(Math.max(e.clientX - 35, 10), window.innerWidth - 90);
+      const y = Math.max(e.clientY - 45, 10);
+      setFloatingBtn({ x, y });
       const scrollContainer = viewerMode === 'scroll'
         ? scrollContainerRef.current
         : contentContainer?.parentElement;
       if (scrollContainer) {
-        const rect = scrollContainer.getBoundingClientRect();
-        const scrollLeft = scrollContainer.scrollLeft;
-        const scrollTop = scrollContainer.scrollTop;
-        const x = Math.min(
-          Math.max(e.clientX - rect.left + scrollLeft - 35, 10),
-          scrollContainer.scrollLeft + scrollContainer.clientWidth - 90
-        );
-        const y = Math.max(e.clientY - rect.top + scrollTop - 45, 10);
-        setFloatingBtn({ x, y });
-        scrollStartRef.current = scrollTop;
+        scrollStartRef.current = scrollContainer.scrollTop;
       }
     } else {
       setFloatingBtn(null);
@@ -950,22 +946,18 @@ export default memo(function PDFViewer() {
         if (trimmed && anchor && container.contains(anchor)) {
           setSelectedText(trimmed);
           const range = sel.getRangeAt(0);
+          const rangeRect = range.getBoundingClientRect();
+          const x = Math.min(Math.max(rangeRect.left, 10), window.innerWidth - 90);
+          const y = Math.max(rangeRect.top - 45, 10);
+          setFloatingBtn({ x, y });
           const scrollContainer = viewerMode === 'scroll'
             ? scrollContainerRef.current
             : container.parentElement;
           if (scrollContainer) {
-            const rangeRect = range.getBoundingClientRect();
-            const containerRect = scrollContainer.getBoundingClientRect();
-            const x = Math.min(
-              Math.max(rangeRect.left - containerRect.left + scrollContainer.scrollLeft, 10),
-              scrollContainer.scrollLeft + scrollContainer.clientWidth - 90
-            );
-            const y = Math.max(rangeRect.top - containerRect.top + scrollContainer.scrollTop - 45, 10);
-            setFloatingBtn({ x, y });
             scrollStartRef.current = scrollContainer.scrollTop;
           }
         }
-      }, 250);
+      }, 100);
     };
 
     document.addEventListener('selectionchange', handleSelectionChange);
@@ -989,7 +981,7 @@ export default memo(function PDFViewer() {
     const handleScroll = () => {
       if (scrollStartRef.current === null) return;
       const scrollDist = Math.abs(scrollContainer.scrollTop - scrollStartRef.current);
-      if (scrollDist < 60) return; // Allow small scrolls without dismissing
+      if (scrollDist < 30) return; // Allow small scrolls without dismissing
       const sel = window.getSelection();
       const text = sel?.toString().trim();
       if (text && text.length > 0 && sel?.rangeCount && contentContainer?.contains(sel.anchorNode)) {
@@ -1056,8 +1048,8 @@ export default memo(function PDFViewer() {
   // Floating translate button (shared between modes)
   const floatingBtnEl = floatingBtn && selectedText && (
     <div
-      className="absolute z-50 animate-in fade-in"
-      style={{ left: `${Math.min(Math.max(4, floatingBtn.x), (viewerMode === 'scroll' ? scrollContainerRef.current?.clientWidth ?? window.innerWidth : canvasContainerRef.current?.parentElement?.clientWidth ?? window.innerWidth) - 90)}px`, top: `${Math.max(4, floatingBtn.y)}px` }}
+      className="fixed z-50 animate-in fade-in"
+      style={{ left: `${floatingBtn.x}px`, top: `${floatingBtn.y}px` }}
     >
       <button
         onMouseDown={(e) => e.preventDefault()}

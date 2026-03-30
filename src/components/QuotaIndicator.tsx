@@ -34,8 +34,8 @@ export default memo(function QuotaIndicator({ label, usedPercent, color = 'blue'
 
   if (compact) {
     return (
-      <div className="flex items-center gap-1.5 min-w-[80px]" title={`${label}: ${percentage}% 사용`}>
-        <div className={`flex-1 h-1.5 rounded-full ${trackColor} overflow-hidden`}>
+      <div className="flex items-center gap-1.5 min-w-0" title={`${label}: ${percentage}% 사용`}>
+        <div className={`w-12 sm:w-16 h-1.5 rounded-full ${trackColor} overflow-hidden`}>
           <div
             className={`h-full rounded-full transition-all duration-300 ${barColor}`}
             style={{ width: `${percentage}%` }}

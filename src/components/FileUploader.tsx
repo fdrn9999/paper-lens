@@ -57,8 +57,10 @@ export default function FileUploader() {
     setIsDragging(true);
   }, []);
 
-  const onDragLeave = useCallback(() => {
-    setIsDragging(false);
+  const onDragLeave = useCallback((e: React.DragEvent) => {
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+      setIsDragging(false);
+    }
   }, []);
 
   const onFileSelect = useCallback(

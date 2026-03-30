@@ -274,12 +274,8 @@ export default function Home() {
           {/* Spacer pushes HelpButton to right edge on mobile top row */}
           <div className="flex-1 sm:hidden" />
 
-          {/* Quota + HelpButton in mobile top row */}
+          {/* UsageButton + HelpButton in mobile top row (quota indicators hidden — accessible via UsageButton dropdown) */}
           <div className="sm:hidden flex items-center gap-1">
-            <div className="flex items-center gap-2 mr-1">
-              <QuotaIndicator label="AI" usedPercent={chatQuota?.usedPercent ?? 0} color="purple" compact />
-              <QuotaIndicator label="번역" usedPercent={translateQuota?.usedPercent ?? 0} color="blue" compact />
-            </div>
             <UsageButton />
             <HelpButton />
           </div>
@@ -316,7 +312,7 @@ export default function Home() {
           role="complementary"
           aria-label="검색 결과 사이드바"
           className={`
-            absolute inset-y-0 left-0 z-[35] w-[85vw] max-w-[288px] bg-white border-r flex flex-col shrink-0
+            absolute inset-y-0 left-0 z-[35] w-[90vw] max-w-[320px] bg-white border-r flex flex-col shrink-0
             transform transition-transform duration-200 ease-out
             lg:relative lg:translate-x-0 lg:w-72 lg:max-w-none
             ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}

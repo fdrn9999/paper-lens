@@ -115,7 +115,7 @@ const KeywordCard = memo(function KeywordCard({
             </span>
             <button
               onClick={(e) => { e.stopPropagation(); onAddToSearch(keyword.term); onSwitchToSearch('search'); window.dispatchEvent(new CustomEvent('paperlens-toast', { detail: { text: `"${keyword.term}" 검색어에 추가됨`, type: 'success' } })); }}
-              className="ml-auto shrink-0 w-5 h-5 flex items-center justify-center rounded hover:bg-blue-100 text-gray-400 hover:text-blue-600 transition-colors"
+              className="ml-auto shrink-0 min-w-[36px] min-h-[36px] flex items-center justify-center rounded hover:bg-blue-100 text-gray-400 hover:text-blue-600 transition-colors"
               title="검색에 추가"
               aria-label={`${keyword.term} 검색에 추가`}
             >
@@ -148,7 +148,7 @@ const KeywordCard = memo(function KeywordCard({
                 <button
                   key={p}
                   onClick={(e) => { e.stopPropagation(); onPageClick(p); }}
-                  className="text-[9px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors font-medium"
+                  className="text-[10px] px-2 py-1 min-h-[24px] rounded bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors font-medium"
                 >
                   P{p}
                 </button>
@@ -156,7 +156,7 @@ const KeywordCard = memo(function KeywordCard({
               {extraPages > 0 && !showAllPages && (
                 <button
                   onClick={(e) => { e.stopPropagation(); setShowAllPages(true); }}
-                  className="text-[9px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 hover:bg-gray-200 hover:text-gray-700 transition-colors font-medium"
+                  className="text-[10px] px-2 py-1 min-h-[24px] rounded bg-gray-100 text-gray-500 hover:bg-gray-200 hover:text-gray-700 transition-colors font-medium"
                 >
                   +{extraPages}
                 </button>
@@ -164,7 +164,7 @@ const KeywordCard = memo(function KeywordCard({
               {showAllPages && keyword.pages.length > 5 && (
                 <button
                   onClick={(e) => { e.stopPropagation(); setShowAllPages(false); }}
-                  className="text-[9px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 hover:bg-gray-200 hover:text-gray-700 transition-colors font-medium"
+                  className="text-[10px] px-2 py-1 min-h-[24px] rounded bg-gray-100 text-gray-500 hover:bg-gray-200 hover:text-gray-700 transition-colors font-medium"
                 >
                   접기
                 </button>

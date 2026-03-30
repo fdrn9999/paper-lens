@@ -126,6 +126,7 @@ interface AppState {
   keywordProgress: { current: number; total: number } | null;
   sidebarTab: 'search' | 'keywords' | 'chat';
 
+  fitScale: number;
   viewerMode: 'scroll' | 'page';
 
   hasSeenTutorial: boolean;
@@ -175,6 +176,7 @@ interface AppState {
   clearKeywords: () => void;
   setSidebarTab: (tab: 'search' | 'keywords' | 'chat') => void;
 
+  setFitScale: (s: number) => void;
   setViewerMode: (mode: 'scroll' | 'page') => void;
   toggleViewerMode: () => void;
 
@@ -225,6 +227,7 @@ const initialState = {
   isExtractingKeywords: false,
   keywordProgress: null as { current: number; total: number } | null,
   sidebarTab: 'search' as 'search' | 'keywords' | 'chat',
+  fitScale: 1.5,
   viewerMode: 'scroll' as const,
   hasSeenTutorial: false,
   isGuideActive: false,
@@ -271,6 +274,7 @@ const useStore = create<AppState>()(
           chatSummary: null,
           isChatLoading: false,
           isSummarizing: false,
+          fitScale: 1.5,
         });
       },
       setTotalPages: (n) => set({ totalPages: n }),
@@ -738,6 +742,7 @@ const useStore = create<AppState>()(
 
       setSidebarTab: (tab) => set({ sidebarTab: tab }),
 
+      setFitScale: (s) => set({ fitScale: s }),
       setViewerMode: (mode) => set({ viewerMode: mode }),
       toggleViewerMode: () => set((s) => ({ viewerMode: s.viewerMode === 'scroll' ? 'page' : 'scroll' })),
 

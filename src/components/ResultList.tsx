@@ -4,7 +4,7 @@ import { useCallback, useMemo, useRef, useState, memo, useEffect } from 'react';
 import useStore from '@/store/useStore';
 import type { SearchResult } from '@/lib/types';
 
-const ITEM_HEIGHT = 44;
+const ITEM_HEIGHT = 56;
 const HEADER_HEIGHT = 28;
 const OVERSCAN = 10;
 
@@ -99,7 +99,7 @@ const ResultItem = memo(function ResultItem({
       aria-selected={isCurrent}
       aria-label={`페이지 ${result.page}: ${result.matchedToken}`}
       onClick={handleClick}
-      className={`w-full h-full text-left px-3 py-2 text-sm transition-colors
+      className={`w-full h-[56px] overflow-hidden text-left px-3 py-2 text-sm transition-colors
         ${isCurrent
           ? 'bg-orange-50 border-l-2 border-orange-400'
           : 'hover:bg-gray-50 border-l-2 border-transparent'
