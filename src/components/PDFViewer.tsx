@@ -284,7 +284,7 @@ export default memo(function PDFViewer() {
             const tx = item.transform;
             const fontSize = Math.sqrt(tx[0] ** 2 + tx[1] ** 2) * scale;
             const rawHeight = item.height > 0 ? item.height : Math.sqrt(tx[0] ** 2 + tx[1] ** 2);
-            const spanHeight = rawHeight * scale;
+            const spanHeight = rawHeight * scale * 0.85;
             const x = tx[4] * scale;
             const y = viewport.height - tx[5] * scale - spanHeight;
 
@@ -688,7 +688,7 @@ export default memo(function PDFViewer() {
           const tx = item.transform;
           const fontSize = Math.sqrt(tx[0] ** 2 + tx[1] ** 2) * s;
           const rawHeight = item.height > 0 ? item.height : Math.sqrt(tx[0] ** 2 + tx[1] ** 2);
-          const spanHeight = rawHeight * s;
+          const spanHeight = rawHeight * s * 0.85;
           const x = tx[4] * s;
           const y = viewport.height - tx[5] * s - spanHeight;
           let scaleXStyle = '';

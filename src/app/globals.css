@@ -81,6 +81,8 @@ input, textarea,
   cursor: text;
   overflow: visible;
   padding-right: 1px;
+  margin-top: 1px;
+  padding-bottom: 0;
 }
 
 .textLayer span.markedContent {
