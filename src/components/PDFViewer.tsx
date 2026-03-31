@@ -814,7 +814,10 @@ export default memo(function PDFViewer() {
   // ===== TEXT SELECTION (shared, mode-aware) =====
   // ===================================================================
 
-  const handleMouseDown = useCallback(() => {
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    // Don't dismiss if clicking on the translate button
+    const target = e.target as HTMLElement;
+    if (target.closest('[aria-label="선택한 텍스트 번역"]')) return;
     // Dismiss floating button on new mousedown (new selection starting)
     setFloatingBtn(null);
   }, []);

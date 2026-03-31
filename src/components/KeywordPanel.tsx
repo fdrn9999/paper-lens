@@ -208,6 +208,10 @@ export default memo(function KeywordPanel() {
 
   const handlePageClick = useCallback((page: number) => {
     setCurrentPage(page);
+    // Close sidebar on mobile/tablet so user can see the page
+    if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+      useStore.getState().setIsSidebarOpen(false);
+    }
   }, [setCurrentPage]);
 
   const activeSet = useMemo(() => new Set(activeKeywords), [activeKeywords]);
