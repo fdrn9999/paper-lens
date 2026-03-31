@@ -374,56 +374,13 @@ export default memo(function PDFViewer() {
         const span = textLayer?.querySelector(`[data-item-index="${hlSpan.itemIndex}"]`) as HTMLElement | null;
         if (!span) continue;
 
-        const text = span.textContent || '';
-        let wordLeft: number, wordTop: number, wordWidth: number, wordHeight: number;
-
-        // Always use getBoundingClientRect for accuracy (respects scaleX transform)
-        const wrapperRect = pd.wrapper.getBoundingClientRect();
-        const textNode = span.firstChild;
-
-        if (textNode && textNode.nodeType === Node.TEXT_NODE && text.length > 0 && hlSpan.charEnd <= text.length) {
-          try {
-            const range = document.createRange();
-            range.setStart(textNode, hlSpan.charStart);
-            range.setEnd(textNode, hlSpan.charEnd);
-            const rects = range.getClientRects();
-            if (rects.length > 0) {
-              const rect = rects[0];
-              wordLeft = rect.left - wrapperRect.left;
-              wordTop = rect.top - wrapperRect.top;
-              wordWidth = rect.width;
-              wordHeight = rect.height;
-            } else {
-              // Fallback: use whole span rect
-              const spanRect = span.getBoundingClientRect();
-              wordLeft = spanRect.left - wrapperRect.left;
-              wordTop = spanRect.top - wrapperRect.top;
-              wordWidth = spanRect.width;
-              wordHeight = spanRect.height;
-            }
-          } catch {
-            const spanRect = span.getBoundingClientRect();
-            wordLeft = spanRect.left - wrapperRect.left;
-            wordTop = spanRect.top - wrapperRect.top;
-            wordWidth = spanRect.width;
-            wordHeight = spanRect.height;
-          }
-        } else {
-          const spanRect = span.getBoundingClientRect();
-          wordLeft = spanRect.left - wrapperRect.left;
-          wordTop = spanRect.top - wrapperRect.top;
-          wordWidth = spanRect.width;
-          wordHeight = spanRect.height;
-        }
-
+        const r = computeHighlightRect(span, pd.wrapper, hlSpan.charStart, hlSpan.charEnd);
         const div = document.createElement('div');
         div.className = 'highlight-mark';
         div.dataset.resultId = result.id;
-        const vInset = Math.max(wordHeight * 0.12, 1);
-        const bgStyle = result.termColor
-          ? `background-color:${result.termColor}66;`
-          : '';
-        div.style.cssText = `left:${wordLeft}px;top:${wordTop + vInset}px;width:${Math.max(wordWidth, 8)}px;height:${Math.max(wordHeight - vInset * 2, 4)}px;${bgStyle}`;
+        const vInset = Math.max(r.height * 0.12, 1);
+        const bgStyle = result.termColor ? `background-color:${result.termColor}66;` : '';
+        div.style.cssText = `left:${r.left}px;top:${r.top + vInset}px;width:${Math.max(r.width, 8)}px;height:${Math.max(r.height - vInset * 2, 4)}px;${bgStyle}`;
         hl.appendChild(div);
       }
     }
@@ -482,6 +439,65 @@ export default memo(function PDFViewer() {
     return () => { cancelled = true; };
   }, [viewerMode, pdfDoc]);
 
+  /** Compute highlight rect for a span (or sub-range within it).
+   *  Uses span's own CSS left/top for position, getBoundingClientRect for width
+   *  (to correctly handle scaleX), and range rects for sub-span matches. */
+  function computeHighlightRect(
+    span: HTMLElement,
+    wrapper: HTMLElement,
+    charStart: number,
+    charEnd: number,
+  ): { left: number; top: number; width: number; height: number } {
+    const text = span.textContent || '';
+    // Span's own CSS position (same coordinate system as highlight layer)
+    const spanLeft = parseFloat(span.style.left) || 0;
+    const spanTop = parseFloat(span.style.top) || 0;
+    // Use getBoundingClientRect for width/height (includes scaleX transform)
+    const spanRect = span.getBoundingClientRect();
+    const wrapperRect = wrapper.getBoundingClientRect();
+    const spanVisualW = spanRect.width;
+    const spanVisualH = spanRect.height;
+
+    // Full span highlight
+    if (charStart === 0 && charEnd >= text.length) {
+      return { left: spanLeft, top: spanTop, width: spanVisualW, height: spanVisualH };
+    }
+
+    // Sub-span: try range.getClientRects first
+    const textNode = span.firstChild;
+    if (textNode && textNode.nodeType === Node.TEXT_NODE && charEnd <= text.length) {
+      try {
+        const range = document.createRange();
+        range.setStart(textNode, charStart);
+        range.setEnd(textNode, charEnd);
+        const rects = range.getClientRects();
+        if (rects.length > 0) {
+          const r = rects[0];
+          return {
+            left: r.left - wrapperRect.left,
+            top: r.top - wrapperRect.top,
+            width: r.width,
+            height: r.height,
+          };
+        }
+      } catch { /* fallback below */ }
+    }
+
+    // Fallback: proportional estimate within span
+    if (text.length > 0) {
+      const startRatio = charStart / text.length;
+      const endRatio = charEnd / text.length;
+      return {
+        left: spanLeft + spanVisualW * startRatio,
+        top: spanTop,
+        width: spanVisualW * (endRatio - startRatio),
+        height: spanVisualH,
+      };
+    }
+
+    return { left: spanLeft, top: spanTop, width: spanVisualW, height: spanVisualH };
+  }
+
   // Helper: render highlights for a single page in scroll mode
   const updateScrollHighlightsForPage = useCallback((pageNum: number) => {
     const wrapper = scrollContainerRef.current?.querySelector(`[data-page="${pageNum}"]`) as HTMLElement;
@@ -502,54 +518,13 @@ export default memo(function PDFViewer() {
         const span = textLayer.querySelector(`[data-item-index="${hlSpan.itemIndex}"]`) as HTMLElement;
         if (!span) continue;
 
-        const text = span.textContent || '';
-        let wordLeft: number, wordTop: number, wordWidth: number, wordHeight: number;
-
-        const wrapperRect = wrapper.getBoundingClientRect();
-        const textNode = span.firstChild;
-
-        if (textNode && textNode.nodeType === Node.TEXT_NODE && text.length > 0 && hlSpan.charEnd <= text.length) {
-          try {
-            const range = document.createRange();
-            range.setStart(textNode, hlSpan.charStart);
-            range.setEnd(textNode, hlSpan.charEnd);
-            const rects = range.getClientRects();
-            if (rects.length > 0) {
-              const rect = rects[0];
-              wordLeft = rect.left - wrapperRect.left;
-              wordTop = rect.top - wrapperRect.top;
-              wordWidth = rect.width;
-              wordHeight = rect.height;
-            } else {
-              const spanRect = span.getBoundingClientRect();
-              wordLeft = spanRect.left - wrapperRect.left;
-              wordTop = spanRect.top - wrapperRect.top;
-              wordWidth = spanRect.width;
-              wordHeight = spanRect.height;
-            }
-          } catch {
-            const spanRect = span.getBoundingClientRect();
-            wordLeft = spanRect.left - wrapperRect.left;
-            wordTop = spanRect.top - wrapperRect.top;
-            wordWidth = spanRect.width;
-            wordHeight = spanRect.height;
-          }
-        } else {
-          const spanRect = span.getBoundingClientRect();
-          wordLeft = spanRect.left - wrapperRect.left;
-          wordTop = spanRect.top - wrapperRect.top;
-          wordWidth = spanRect.width;
-          wordHeight = spanRect.height;
-        }
-
+        const r = computeHighlightRect(span, wrapper, hlSpan.charStart, hlSpan.charEnd);
         const div = document.createElement('div');
         div.className = 'highlight-mark';
         div.dataset.resultId = result.id;
-        const vInset = Math.max(wordHeight * 0.12, 1);
-        const bgStyle = result.termColor
-          ? `background-color:${result.termColor}66;`
-          : '';
-        div.style.cssText = `left:${wordLeft}px;top:${wordTop + vInset}px;width:${Math.max(wordWidth, 8)}px;height:${Math.max(wordHeight - vInset * 2, 4)}px;${bgStyle}`;
+        const vInset = Math.max(r.height * 0.12, 1);
+        const bgStyle = result.termColor ? `background-color:${result.termColor}66;` : '';
+        div.style.cssText = `left:${r.left}px;top:${r.top + vInset}px;width:${Math.max(r.width, 8)}px;height:${Math.max(r.height - vInset * 2, 4)}px;${bgStyle}`;
         hlLayer.appendChild(div);
       }
     }
@@ -612,50 +587,11 @@ export default memo(function PDFViewer() {
     charStart: number, charEnd: number,
     color: string, layer: HTMLElement,
   ) {
-    const text = span.textContent || '';
-    let wordLeft: number, wordTop: number, wordWidth: number, wordHeight: number;
-
-    const wrapperRect = wrapper.getBoundingClientRect();
-    const textNode = span.firstChild;
-
-    if (textNode && textNode.nodeType === Node.TEXT_NODE && text.length > 0 && charEnd <= text.length) {
-      try {
-        const range = document.createRange();
-        range.setStart(textNode, charStart);
-        range.setEnd(textNode, charEnd);
-        const rects = range.getClientRects();
-        if (rects.length > 0) {
-          const rect = rects[0];
-          wordLeft = rect.left - wrapperRect.left;
-          wordTop = rect.top - wrapperRect.top;
-          wordWidth = rect.width;
-          wordHeight = rect.height;
-        } else {
-          const spanRect = span.getBoundingClientRect();
-          wordLeft = spanRect.left - wrapperRect.left;
-          wordTop = spanRect.top - wrapperRect.top;
-          wordWidth = spanRect.width;
-          wordHeight = spanRect.height;
-        }
-      } catch {
-        const spanRect = span.getBoundingClientRect();
-        wordLeft = spanRect.left - wrapperRect.left;
-        wordTop = spanRect.top - wrapperRect.top;
-        wordWidth = spanRect.width;
-        wordHeight = spanRect.height;
-      }
-    } else {
-      const spanRect = span.getBoundingClientRect();
-      wordLeft = spanRect.left - wrapperRect.left;
-      wordTop = spanRect.top - wrapperRect.top;
-      wordWidth = spanRect.width;
-      wordHeight = spanRect.height;
-    }
-
+    const r = computeHighlightRect(span, wrapper, charStart, charEnd);
     const div = document.createElement('div');
     div.className = 'highlight-mark keyword';
-    const vInset = Math.max(wordHeight * 0.12, 1);
-    div.style.cssText = `left:${wordLeft}px;top:${wordTop + vInset}px;width:${Math.max(wordWidth, 4)}px;height:${Math.max(wordHeight - vInset * 2, 4)}px;background-color:${color}40;border-bottom:2px solid ${color};`;
+    const vInset = Math.max(r.height * 0.12, 1);
+    div.style.cssText = `left:${r.left}px;top:${r.top + vInset}px;width:${Math.max(r.width, 4)}px;height:${Math.max(r.height - vInset * 2, 4)}px;background-color:${color}40;border-bottom:2px solid ${color};`;
     layer.appendChild(div);
   }
 
