@@ -15,6 +15,56 @@ function tokenize(text: string): string[] {
   return tokens;
 }
 
+// ─── Units ─────────────────────────────────────────────────────────────────
+
+/** Common measurement units — detected keywords get a "(단위)" suffix */
+const UNITS = new Set([
+  // Length
+  'mm', 'cm', 'm', 'km', 'nm', 'μm', 'um', 'in', 'ft', 'yd', 'mi',
+  // Area / Volume
+  'ml', 'cl', 'dl', 'l', 'mm2', 'cm2', 'm2', 'km2', 'mm3', 'cm3', 'm3',
+  // Mass
+  'mg', 'g', 'kg', 'lb', 'oz', 'ton',
+  // Time
+  'ms', 'ns', 'μs', 'us', 'min', 'hr',
+  // Frequency / Speed
+  'hz', 'khz', 'mhz', 'ghz', 'rpm', 'rps',
+  // Electrical
+  'v', 'kv', 'mv', 'ma', 'ka', 'mw', 'kw', 'mwh', 'kwh', 'ohm',
+  // Sound / Signal
+  'db', 'dba', 'dbi',
+  // Pressure / Temperature
+  'pa', 'kpa', 'mpa', 'gpa', 'psi', 'bar', 'atm',
+  // Data
+  'kb', 'mb', 'gb', 'tb', 'kbps', 'mbps', 'gbps',
+  // Optics / Radiation
+  'cd', 'lux', 'lm', 'ev', 'kev', 'mev',
+  // Misc
+  'mol', 'ppm', 'ppb', 'wt', 'vol',
+]);
+
+function isUnit(token: string): boolean {
+  return UNITS.has(token.toLowerCase());
+}
+
+// ─── Fragment filter (rejects partial words from broken PDF tokens) ────────
+
+/** Common English word fragments that appear from PDF text splitting */
+const FRAGMENT_PATTERNS = [
+  /^[bcdfghjklmnpqrstvwxyz]{3,}$/i, // consonant-only clusters (e.g., "ght", "str")
+  /^(tion|ment|ness|able|ible|ical|ous|ive|ing|ity|ence|ance|ure|ular|ated|ting|ted|nal|ial|ual|ally|erly|ward)$/i,
+];
+
+/** Reject tokens that look like word fragments rather than complete words */
+function isFragment(token: string): boolean {
+  // Very short tokens (2 chars) that aren't known units are suspicious
+  if (token.length === 2 && !isUnit(token)) return true;
+  // Pure numbers aren't keywords
+  if (/^\d+$/.test(token)) return true;
+  // Known fragment suffixes/prefixes
+  return FRAGMENT_PATTERNS.some((p) => p.test(token));
+}
+
 // ─── Stopwords ──────────────────────────────────────────────────────────────
 
 const EN_STOPWORDS = new Set([
@@ -44,7 +94,13 @@ const KO_STOPWORDS = new Set([
 ]);
 
 function isStopword(token: string): boolean {
-  return EN_STOPWORDS.has(token) || KO_STOPWORDS.has(token) || token.length <= 1;
+  if (token.length <= 1) return true;
+  if (EN_STOPWORDS.has(token) || KO_STOPWORDS.has(token)) return true;
+  // Units are valid keywords (not stopwords) — handled separately
+  if (isUnit(token)) return false;
+  // Reject word fragments
+  if (isFragment(token)) return true;
+  return false;
 }
 
 // ─── Shared Helpers ─────────────────────────────────────────────────────────
@@ -227,6 +283,7 @@ async function extractTfIdf(
       contexts: buildContexts(entry.term, pages),
       algorithm: 'tfidf' as KeywordAlgorithm,
       color: keywordColor(i),
+      ...(isUnit(entry.term) ? { tag: '단위' } : {}),
     };
   });
 }
@@ -326,6 +383,7 @@ async function extractTextRank(
       contexts: buildContexts(entry.term, pages),
       algorithm: 'textrank' as KeywordAlgorithm,
       color: keywordColor(i),
+      ...(isUnit(entry.term) ? { tag: '단위' } : {}),
     };
   });
 }
@@ -409,6 +467,7 @@ async function extractNgram(
       : buildNgramContexts(entry.tokens, pages),
     algorithm: 'ngram' as KeywordAlgorithm,
     color: keywordColor(i),
+    ...(entry.tokens.length === 1 && isUnit(entry.term) ? { tag: '단위' } : {}),
   }));
 }
 

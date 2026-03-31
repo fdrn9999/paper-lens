@@ -110,6 +110,11 @@ const KeywordCard = memo(function KeywordCard({
           {/* Header: term + badge */}
           <div className="flex items-center gap-1.5 mb-1.5">
             <span className="font-bold text-sm text-gray-900 truncate">{keyword.term}</span>
+            {keyword.tag && (
+              <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-600 shrink-0 font-medium">
+                {keyword.tag}
+              </span>
+            )}
             <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-500 shrink-0 uppercase font-medium tracking-wide">
               {keyword.algorithm}
             </span>

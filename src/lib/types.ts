@@ -71,6 +71,8 @@ export interface ExtractedKeyword {
   contexts: KeywordContext[];
   algorithm: KeywordAlgorithm;
   color: string;
+  /** Optional tag like "단위" for measurement units */
+  tag?: string;
 }
 
 export interface ChatMessage {
