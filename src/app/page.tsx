@@ -364,7 +364,7 @@ export default function Home() {
         </aside>
 
         {/* Main - PDF Viewer */}
-        <main id="main-content" className="flex-1 min-w-0 flex flex-col overflow-hidden" data-guide="pdf-viewer">
+        <main id="main-content" className="flex-1 min-w-0 flex flex-col min-h-0" data-guide="pdf-viewer">
           <ErrorBoundary
             section="PDF 뷰어"
             fallback={
@@ -385,17 +385,7 @@ export default function Home() {
               <PDFViewer />
             </div>
           </ErrorBoundary>
-          {/* Translation panel inside main so it shares flex space with viewer */}
-          <ErrorBoundary
-            section="번역"
-            fallback={
-              <div className="border-t bg-white px-4 py-3 text-center">
-                <p className="text-sm text-gray-500">번역 기능에 오류가 발생했습니다.</p>
-              </div>
-            }
-          >
-            <TranslationPanel />
-          </ErrorBoundary>
+          <TranslationPanel />
           <PageNavigator />
         </main>
       </div>
