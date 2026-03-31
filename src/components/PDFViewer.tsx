@@ -46,7 +46,6 @@ export default memo(function PDFViewer() {
 
   const [floatingBtn, setFloatingBtn] = useState<{ x: number; y: number } | null>(null);
   const scrollStartRef = useRef<number | null>(null);
-  const mouseDownPosRef = useRef<{ x: number; y: number } | null>(null);
 
   const handleTranslateClick = useCallback(() => {
     if (selectedText) {
@@ -380,9 +379,8 @@ export default memo(function PDFViewer() {
         const div = document.createElement('div');
         div.className = 'highlight-mark';
         div.dataset.resultId = result.id;
-        const vInset = Math.max(r.height * 0.12, 1);
         const bgStyle = result.termColor ? `background-color:${result.termColor}66;` : '';
-        div.style.cssText = `left:${r.left}px;top:${r.top + vInset}px;width:${Math.max(r.width, 8)}px;height:${Math.max(r.height - vInset * 2, 4)}px;${bgStyle}`;
+        div.style.cssText = `left:${r.left}px;top:${r.top}px;width:${Math.max(r.width, 8)}px;height:${r.height}px;${bgStyle}`;
         hl.appendChild(div);
       }
     }
@@ -462,6 +460,14 @@ export default memo(function PDFViewer() {
     const spanLeft = parseFloat(span.style.left) || 0;
     const spanTop = parseFloat(span.style.top) || 0;
     const spanH = parseFloat(span.style.height) || parseFloat(span.style.lineHeight) || 14;
+    const fontSize = parseFloat(span.style.fontSize) || 12;
+
+    // The span top is calculated with 0.85 height factor, so the text baseline
+    // sits lower than spanTop. Shift highlight down to align with actual text.
+    // Approximate: text renders from spanTop + (spanH - fontSize) down to spanTop + spanH
+    const textOffsetY = Math.max(spanH - fontSize * 0.9, 0);
+    const hlTop = spanTop + textOffsetY;
+    const hlHeight = fontSize * 0.9;
 
     const font = `${span.style.fontSize} ${span.style.fontFamily || 'sans-serif'}`;
     const scaleXMatch = span.style.transform?.match(/scaleX\(([^)]+)\)/);
@@ -474,9 +480,9 @@ export default memo(function PDFViewer() {
       const matchW = ctx.measureText(text.slice(charStart, charEnd)).width;
       return {
         left: spanLeft + startW * scaleX,
-        top: spanTop,
+        top: hlTop,
         width: matchW * scaleX,
-        height: spanH,
+        height: hlHeight,
       };
     }
 
@@ -486,9 +492,9 @@ export default memo(function PDFViewer() {
     const widthRatio = (charEnd - charStart) / Math.max(text.length, 1);
     return {
       left: spanLeft + spanRect.width * startRatio,
-      top: spanTop,
+      top: hlTop,
       width: spanRect.width * widthRatio,
-      height: spanH,
+      height: hlHeight,
     };
   }
 
@@ -516,9 +522,8 @@ export default memo(function PDFViewer() {
         const div = document.createElement('div');
         div.className = 'highlight-mark';
         div.dataset.resultId = result.id;
-        const vInset = Math.max(r.height * 0.12, 1);
         const bgStyle = result.termColor ? `background-color:${result.termColor}66;` : '';
-        div.style.cssText = `left:${r.left}px;top:${r.top + vInset}px;width:${Math.max(r.width, 8)}px;height:${Math.max(r.height - vInset * 2, 4)}px;${bgStyle}`;
+        div.style.cssText = `left:${r.left}px;top:${r.top}px;width:${Math.max(r.width, 8)}px;height:${r.height}px;${bgStyle}`;
         hlLayer.appendChild(div);
       }
     }
@@ -586,8 +591,7 @@ export default memo(function PDFViewer() {
     const r = computeHighlightRect(span, wrapper, charStart, charEnd);
     const div = document.createElement('div');
     div.className = 'highlight-mark keyword';
-    const vInset = Math.max(r.height * 0.12, 1);
-    div.style.cssText = `left:${r.left}px;top:${r.top + vInset}px;width:${Math.max(r.width, 4)}px;height:${Math.max(r.height - vInset * 2, 4)}px;background-color:${color}40;border-bottom:2px solid ${color};`;
+    div.style.cssText = `left:${r.left}px;top:${r.top}px;width:${Math.max(r.width, 4)}px;height:${r.height}px;background-color:${color}40;border-bottom:2px solid ${color};`;
     layer.appendChild(div);
   }
 
@@ -810,8 +814,9 @@ export default memo(function PDFViewer() {
   // ===== TEXT SELECTION (shared, mode-aware) =====
   // ===================================================================
 
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    mouseDownPosRef.current = { x: e.clientX, y: e.clientY };
+  const handleMouseDown = useCallback(() => {
+    // Dismiss floating button on new mousedown (new selection starting)
+    setFloatingBtn(null);
   }, []);
 
   /** Clean up PDF text selection: collapse excessive whitespace from span gaps */
@@ -827,14 +832,6 @@ export default memo(function PDFViewer() {
     // Don't dismiss floating button if clicking on it
     const target = e.target as HTMLElement;
     if (target.closest('[aria-label="선택한 텍스트 번역"]')) return;
-
-    // Ignore micro-drags (< 5px) that aren't intentional selections
-    const down = mouseDownPosRef.current;
-    if (down) {
-      const dist = Math.hypot(e.clientX - down.x, e.clientY - down.y);
-      mouseDownPosRef.current = null;
-      if (dist < 5) { setFloatingBtn(null); return; }
-    }
 
     const sel = window.getSelection();
     if (!sel || sel.rangeCount === 0) { setFloatingBtn(null); return; }
