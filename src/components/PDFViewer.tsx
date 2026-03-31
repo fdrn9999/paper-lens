@@ -5,6 +5,8 @@ import useStore from '@/store/useStore';
 import type { PageTextContent, ExtractedTextItem } from '@/lib/types';
 import { loadPdfjs } from '@/lib/pdfLoader';
 import type { PdfjsDocument, PdfjsViewport, PdfjsTextItem } from '@/lib/pdfLoader';
+// Pretext-inspired: canvas measureText for precise char-level positioning
+// (pretext's measurement module isn't exported, so we inline the technique)
 
 export default memo(function PDFViewer() {
   // === Page-mode refs ===
@@ -439,56 +441,55 @@ export default memo(function PDFViewer() {
     return () => { cancelled = true; };
   }, [viewerMode, pdfDoc]);
 
-  /** Compute highlight rect using wrapper-relative coordinates.
-   *  All measurements via getBoundingClientRect relative to wrapper
-   *  for consistent, transform-aware positioning. */
+  /** Shared canvas context for text measurement (pretext-inspired technique:
+   *  use canvas measureText instead of DOM measurement for precision). */
+  const hlMeasureCtx = useRef<CanvasRenderingContext2D | null>(null);
+  if (!hlMeasureCtx.current && typeof document !== 'undefined') {
+    hlMeasureCtx.current = document.createElement('canvas').getContext('2d');
+  }
+
+  /** Compute highlight rect using span's CSS coords + canvas measureText.
+   *  - Position: span's own CSS left/top (exact PDF coordinates)
+   *  - Dimensions: canvas measureText for char-level precision
+   *  - ScaleX: applied to convert font metrics to visual width */
   function computeHighlightRect(
     span: HTMLElement,
-    wrapper: HTMLElement,
+    _wrapper: HTMLElement,
     charStart: number,
     charEnd: number,
   ): { left: number; top: number; width: number; height: number } {
     const text = span.textContent || '';
-    const wrapperRect = wrapper.getBoundingClientRect();
-    const spanRect = span.getBoundingClientRect();
+    const spanLeft = parseFloat(span.style.left) || 0;
+    const spanTop = parseFloat(span.style.top) || 0;
+    const spanH = parseFloat(span.style.height) || parseFloat(span.style.lineHeight) || 14;
 
-    // Default: full span
-    let left = spanRect.left - wrapperRect.left;
-    let top = spanRect.top - wrapperRect.top;
-    let width = spanRect.width;
-    let height = spanRect.height;
+    const font = `${span.style.fontSize} ${span.style.fontFamily || 'sans-serif'}`;
+    const scaleXMatch = span.style.transform?.match(/scaleX\(([^)]+)\)/);
+    const scaleX = scaleXMatch ? parseFloat(scaleXMatch[1]) : 1;
 
-    // Sub-span: narrow to matched character range
-    const textNode = span.firstChild;
-    const isSubSpan = !(charStart === 0 && charEnd >= text.length);
-    if (isSubSpan && textNode && textNode.nodeType === Node.TEXT_NODE && text.length > 0 && charEnd <= text.length) {
-      try {
-        const range = document.createRange();
-        range.setStart(textNode, charStart);
-        range.setEnd(textNode, charEnd);
-        const rects = range.getClientRects();
-        if (rects.length > 0) {
-          const r = rects[0];
-          left = r.left - wrapperRect.left;
-          top = r.top - wrapperRect.top;
-          width = r.width;
-          height = r.height;
-        } else {
-          // Proportional fallback
-          const startRatio = charStart / text.length;
-          const widthRatio = (charEnd - charStart) / text.length;
-          left += width * startRatio;
-          width *= widthRatio;
-        }
-      } catch {
-        const startRatio = charStart / text.length;
-        const widthRatio = (charEnd - charStart) / text.length;
-        left += width * startRatio;
-        width *= widthRatio;
-      }
+    const ctx = hlMeasureCtx.current;
+    if (ctx && text.length > 0) {
+      ctx.font = font;
+      const startW = charStart > 0 ? ctx.measureText(text.slice(0, charStart)).width : 0;
+      const matchW = ctx.measureText(text.slice(charStart, charEnd)).width;
+      return {
+        left: spanLeft + startW * scaleX,
+        top: spanTop,
+        width: matchW * scaleX,
+        height: spanH,
+      };
     }
 
-    return { left, top, width, height };
+    // Last resort: proportional
+    const spanRect = span.getBoundingClientRect();
+    const startRatio = charStart / Math.max(text.length, 1);
+    const widthRatio = (charEnd - charStart) / Math.max(text.length, 1);
+    return {
+      left: spanLeft + spanRect.width * startRatio,
+      top: spanTop,
+      width: spanRect.width * widthRatio,
+      height: spanH,
+    };
   }
 
   // Helper: render highlights for a single page in scroll mode
