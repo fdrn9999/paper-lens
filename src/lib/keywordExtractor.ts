@@ -163,19 +163,25 @@ function findNgramPages(ngram: string[], pageTokens: string[][]): number[] {
   return pages;
 }
 
-/** Build context snippets for a term (up to 3). */
+/** Check if term appears as a whole word in text (word-boundary matching). */
+function containsWholeWord(text: string, term: string): boolean {
+  const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const re = new RegExp(`\\b${escaped}\\b`, 'i');
+  return re.test(text);
+}
+
+/** Build context snippets for a term (up to 3). Uses whole-word matching. */
 function buildContexts(
   term: string,
   pages: PageTextContent[],
   maxContexts: number = 3,
 ): KeywordContext[] {
   const contexts: KeywordContext[] = [];
-  const termLower = term.toLowerCase();
   for (const page of pages) {
     if (contexts.length >= maxContexts) break;
     for (const item of page.items) {
       if (contexts.length >= maxContexts) break;
-      if (item.text.toLowerCase().includes(termLower)) {
+      if (containsWholeWord(item.text, term)) {
         contexts.push({
           page: page.page,
           snippet: item.text.slice(0, 120),

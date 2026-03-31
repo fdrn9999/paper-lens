@@ -556,10 +556,12 @@ export default memo(function PDFViewer() {
 
       for (const [term, color] of colorMap) {
         if (term.includes(' ')) {
-          let pos = 0;
-          while ((pos = textLower.indexOf(term, pos)) !== -1) {
-            createKwMark(span, wrapper, pos, pos + term.length, color, kwLayer);
-            pos += 1;
+          // Multi-word: use word-boundary regex for whole-phrase matching
+          const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          const mwRe = new RegExp('\\b' + escaped + '\\b', 'gi');
+          let mwMatch;
+          while ((mwMatch = mwRe.exec(text)) !== null) {
+            createKwMark(span, wrapper, mwMatch.index, mwMatch.index + mwMatch[0].length, color, kwLayer);
           }
         } else {
           tokenRe.lastIndex = 0;
