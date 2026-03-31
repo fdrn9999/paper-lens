@@ -892,8 +892,10 @@ export default memo(function PDFViewer() {
     if (text && text.length > 0 && anchor && contentContainer?.contains(anchor)) {
       setSelectedText(text);
       const x = Math.min(Math.max(e.clientX - 35, 10), window.innerWidth - 90);
-      // Place below selection to avoid OS toolbar overlap
-      const y = Math.min(e.clientY + 10, window.innerHeight - 60);
+      // Below if room, above if near bottom
+      const belowY = e.clientY + 10;
+      const aboveY = e.clientY - 50;
+      const y = belowY < window.innerHeight - 60 ? belowY : Math.max(10, aboveY);
       setFloatingBtn({ x, y });
       const scrollContainer = viewerMode === 'scroll'
         ? scrollContainerRef.current
@@ -949,8 +951,10 @@ export default memo(function PDFViewer() {
           const range = sel.getRangeAt(0);
           const rangeRect = range.getBoundingClientRect();
           const x = Math.min(Math.max(rangeRect.left, 10), window.innerWidth - 90);
-          // Place below selection to avoid mobile OS toolbar
-          const y = Math.min(rangeRect.bottom + 8, window.innerHeight - 60);
+          // Below if room, above if near bottom
+          const belowY = rangeRect.bottom + 8;
+          const aboveY = rangeRect.top - 50;
+          const y = belowY < window.innerHeight - 60 ? belowY : Math.max(10, aboveY);
           setFloatingBtn({ x, y });
           const scrollContainer = viewerMode === 'scroll'
             ? scrollContainerRef.current
