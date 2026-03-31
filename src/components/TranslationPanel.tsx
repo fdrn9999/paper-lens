@@ -71,10 +71,10 @@ export default memo(function TranslationPanel() {
           </button>
         </div>
 
-        {/* Original */}
-        <div className="mb-3">
+        {/* Original — compact on mobile to maximize space for translation */}
+        <div className="mb-2">
           <p className="text-xs text-gray-500 mb-1">원문</p>
-          <p className="text-sm text-gray-700 bg-gray-50 rounded-lg p-2 max-h-16 sm:max-h-20 overflow-auto">
+          <p className="text-xs sm:text-sm text-gray-700 bg-gray-50 rounded-lg p-2 max-h-10 sm:max-h-20 overflow-auto line-clamp-2 sm:line-clamp-none">
             {selectedText}
           </p>
         </div>
@@ -104,7 +104,7 @@ export default memo(function TranslationPanel() {
             </div>
           ) : (
             <div className="relative">
-              <p className="translation-result text-sm text-gray-900 bg-blue-50 rounded-lg p-2 pr-8 max-h-32 sm:max-h-48 overflow-auto leading-relaxed">
+              <p className="translation-result text-sm text-gray-900 bg-blue-50 rounded-lg p-2 pr-8 max-h-[20dvh] sm:max-h-48 overflow-auto leading-relaxed">
                 {translationResult || '번역 결과가 없습니다.'}
               </p>
               {translationResult && (
