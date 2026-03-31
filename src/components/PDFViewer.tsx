@@ -46,9 +46,6 @@ export default memo(function PDFViewer() {
   const scrollStartRef = useRef<number | null>(null);
   const mouseDownPosRef = useRef<{ x: number; y: number } | null>(null);
 
-  // Detect touch device (must be before any conditional returns)
-  const isTouchDevice = typeof window !== 'undefined' && ('ontouchstart' in window || navigator.maxTouchPoints > 0);
-
   const handleTranslateClick = useCallback(() => {
     if (selectedText) {
       translate(selectedText);
@@ -1066,8 +1063,8 @@ export default memo(function PDFViewer() {
     );
   }
 
-  // PC: floating button near selection
-  const floatingBtnEl = !isTouchDevice && floatingBtn && selectedText && (
+  // Floating translate button near selection (works on all devices)
+  const floatingBtnEl = floatingBtn && selectedText && !showTranslation && (
     <div
       className="fixed z-50 animate-in fade-in"
       style={{ left: `${floatingBtn.x}px`, top: `${floatingBtn.y}px` }}
@@ -1083,22 +1080,6 @@ export default memo(function PDFViewer() {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
         </svg>
         번역
-      </button>
-    </div>
-  );
-
-  // Mobile: fixed bottom bar when text selected
-  // Hide mobile bar when translation panel is open (it would cover the results)
-  const mobileBarEl = isTouchDevice && selectedText && !showTranslation && (
-    <div className="fixed bottom-0 left-0 right-0 z-50 bg-blue-600 pb-safe animate-slide-up">
-      <button
-        onClick={handleTranslateClick}
-        className="w-full flex items-center justify-center gap-2 px-4 py-3 text-white text-sm font-medium active:bg-blue-800 transition-colors"
-      >
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
-        </svg>
-        선택한 텍스트 번역하기
       </button>
     </div>
   );
@@ -1128,7 +1109,7 @@ export default memo(function PDFViewer() {
           />
         ))}
         {floatingBtnEl}
-        {mobileBarEl}
+
       </div>
     );
   }
@@ -1142,7 +1123,6 @@ export default memo(function PDFViewer() {
     >
       <div ref={canvasContainerRef} />
       {floatingBtnEl}
-      {mobileBarEl}
       {renderingCanvas && (
         <div className="absolute inset-0 flex items-center justify-center bg-white/50 z-20">
           <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-lg shadow">
