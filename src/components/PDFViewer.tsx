@@ -883,6 +883,10 @@ export default memo(function PDFViewer() {
   }, []);
 
   const handleMouseUp = useCallback((e: React.MouseEvent) => {
+    // Don't dismiss floating button if clicking on it
+    const target = e.target as HTMLElement;
+    if (target.closest('[aria-label="선택한 텍스트 번역"]')) return;
+
     // Ignore micro-drags (< 5px) that aren't intentional selections
     const down = mouseDownPosRef.current;
     if (down) {
