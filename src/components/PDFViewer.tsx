@@ -50,7 +50,8 @@ export default memo(function PDFViewer() {
     if (selectedText) {
       translate(selectedText);
       setFloatingBtn(null);
-      window.getSelection()?.removeAllRanges();
+      // Delay removeAllRanges so translate's state update lands first
+      setTimeout(() => window.getSelection()?.removeAllRanges(), 50);
     }
   }, [selectedText, translate]);
 
@@ -952,7 +953,10 @@ export default memo(function PDFViewer() {
 
         const sel = window.getSelection();
         if (!sel || sel.rangeCount === 0 || !sel.toString().trim()) {
-          setSelectedText('');
+          // Don't clear selectedText if translation is in progress/shown
+          if (!useStore.getState().showTranslation) {
+            setSelectedText('');
+          }
           return;
         }
         const trimmed = cleanText(sel.toString());
