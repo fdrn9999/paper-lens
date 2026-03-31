@@ -37,7 +37,7 @@ export default memo(function TranslationPanel() {
   if (!pdfData) return null;
 
   return (
-    <div className={`bg-white overflow-hidden transition-all duration-300 ease-out ${showTranslation ? 'max-h-[40dvh] border-t pb-safe' : 'max-h-0'}`}>
+    <div className={`bg-white overflow-hidden transition-all duration-300 ease-out shrink-0 ${showTranslation ? 'max-h-[40dvh] border-t pb-safe' : 'max-h-0'}`}>
       {/* Translation result — always rendered, clipped by overflow-hidden when max-h-0 */}
       <div className="px-3 sm:px-4 py-2 sm:py-3 max-h-[40dvh] overflow-auto">
         <div className="flex items-center justify-between mb-2">
