@@ -45,6 +45,17 @@ export default memo(function PDFViewer() {
   const scrollStartRef = useRef<number | null>(null);
   const mouseDownPosRef = useRef<{ x: number; y: number } | null>(null);
 
+  // Detect touch device (must be before any conditional returns)
+  const isTouchDevice = typeof window !== 'undefined' && ('ontouchstart' in window || navigator.maxTouchPoints > 0);
+
+  const handleTranslateClick = useCallback(() => {
+    if (selectedText) {
+      translate(selectedText);
+      setFloatingBtn(null);
+      window.getSelection()?.removeAllRanges();
+    }
+  }, [selectedText, translate]);
+
   // === Scroll-mode state & refs ===
   const [pageDims, setPageDims] = useState<{ w: number; h: number }[]>([]);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -1053,17 +1064,6 @@ export default memo(function PDFViewer() {
       </div>
     );
   }
-
-  // Detect touch device
-  const isTouchDevice = typeof window !== 'undefined' && ('ontouchstart' in window || navigator.maxTouchPoints > 0);
-
-  const handleTranslateClick = useCallback(() => {
-    if (selectedText) {
-      translate(selectedText);
-      setFloatingBtn(null);
-      window.getSelection()?.removeAllRanges();
-    }
-  }, [selectedText, translate]);
 
   // PC: floating button near selection
   const floatingBtnEl = !isTouchDevice && floatingBtn && selectedText && (
