@@ -439,9 +439,9 @@ export default memo(function PDFViewer() {
     return () => { cancelled = true; };
   }, [viewerMode, pdfDoc]);
 
-  /** Compute highlight rect for a span (or sub-range within it).
-   *  Uses span's own CSS left/top for position, getBoundingClientRect for width
-   *  (to correctly handle scaleX), and range rects for sub-span matches. */
+  /** Compute highlight rect using wrapper-relative coordinates.
+   *  All measurements via getBoundingClientRect relative to wrapper
+   *  for consistent, transform-aware positioning. */
   function computeHighlightRect(
     span: HTMLElement,
     wrapper: HTMLElement,
@@ -449,23 +449,19 @@ export default memo(function PDFViewer() {
     charEnd: number,
   ): { left: number; top: number; width: number; height: number } {
     const text = span.textContent || '';
-    // Span's own CSS position (same coordinate system as highlight layer)
-    const spanLeft = parseFloat(span.style.left) || 0;
-    const spanTop = parseFloat(span.style.top) || 0;
-    // Use getBoundingClientRect for width/height (includes scaleX transform)
-    const spanRect = span.getBoundingClientRect();
     const wrapperRect = wrapper.getBoundingClientRect();
-    const spanVisualW = spanRect.width;
-    const spanVisualH = spanRect.height;
+    const spanRect = span.getBoundingClientRect();
 
-    // Full span highlight
-    if (charStart === 0 && charEnd >= text.length) {
-      return { left: spanLeft, top: spanTop, width: spanVisualW, height: spanVisualH };
-    }
+    // Default: full span
+    let left = spanRect.left - wrapperRect.left;
+    let top = spanRect.top - wrapperRect.top;
+    let width = spanRect.width;
+    let height = spanRect.height;
 
-    // Sub-span: try range.getClientRects first
+    // Sub-span: narrow to matched character range
     const textNode = span.firstChild;
-    if (textNode && textNode.nodeType === Node.TEXT_NODE && charEnd <= text.length) {
+    const isSubSpan = !(charStart === 0 && charEnd >= text.length);
+    if (isSubSpan && textNode && textNode.nodeType === Node.TEXT_NODE && text.length > 0 && charEnd <= text.length) {
       try {
         const range = document.createRange();
         range.setStart(textNode, charStart);
@@ -473,29 +469,26 @@ export default memo(function PDFViewer() {
         const rects = range.getClientRects();
         if (rects.length > 0) {
           const r = rects[0];
-          return {
-            left: r.left - wrapperRect.left,
-            top: r.top - wrapperRect.top,
-            width: r.width,
-            height: r.height,
-          };
+          left = r.left - wrapperRect.left;
+          top = r.top - wrapperRect.top;
+          width = r.width;
+          height = r.height;
+        } else {
+          // Proportional fallback
+          const startRatio = charStart / text.length;
+          const widthRatio = (charEnd - charStart) / text.length;
+          left += width * startRatio;
+          width *= widthRatio;
         }
-      } catch { /* fallback below */ }
+      } catch {
+        const startRatio = charStart / text.length;
+        const widthRatio = (charEnd - charStart) / text.length;
+        left += width * startRatio;
+        width *= widthRatio;
+      }
     }
 
-    // Fallback: proportional estimate within span
-    if (text.length > 0) {
-      const startRatio = charStart / text.length;
-      const endRatio = charEnd / text.length;
-      return {
-        left: spanLeft + spanVisualW * startRatio,
-        top: spanTop,
-        width: spanVisualW * (endRatio - startRatio),
-        height: spanVisualH,
-      };
-    }
-
-    return { left: spanLeft, top: spanTop, width: spanVisualW, height: spanVisualH };
+    return { left, top, width, height };
   }
 
   // Helper: render highlights for a single page in scroll mode
