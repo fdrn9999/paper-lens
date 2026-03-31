@@ -20,7 +20,6 @@ export default memo(function TranslationPanel() {
   const retryAvailableAt = useStore((s) => s.translateRetryAt);
   const pdfData = useStore((s) => s.pdfData);
 
-  // Countdown timer for rate limit feedback
   const [retrySec, setRetrySec] = useState(0);
   useEffect(() => {
     if (!retryAvailableAt) { setRetrySec(0); return; }
@@ -34,22 +33,16 @@ export default memo(function TranslationPanel() {
     if (selectedText && retrySec <= 0) translate(selectedText);
   }, [selectedText, translate, retrySec]);
 
-  if (!pdfData) return null;
+  if (!pdfData || !showTranslation) return null;
 
   return (
-    <div className={`bg-white overflow-hidden transition-all duration-300 ease-out shrink-0 ${showTranslation ? 'max-h-[40dvh] border-t pb-safe' : 'max-h-0'}`}>
-      {/* Translation result — always rendered, clipped by overflow-hidden when max-h-0 */}
-      <div className="px-3 sm:px-4 py-2 sm:py-3 max-h-[40dvh] overflow-auto">
+    <div className="bg-white border-t pb-safe shrink-0 max-h-[40dvh] overflow-auto">
+      <div className="px-3 sm:px-4 py-2 sm:py-3">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-3">
             <h3 className="text-sm font-semibold text-gray-700">번역 결과</h3>
             {translateQuota && (
-              <QuotaIndicator
-                label="번역"
-                usedPercent={translateQuota.usedPercent}
-                color="blue"
-                compact
-              />
+              <QuotaIndicator label="번역" usedPercent={translateQuota.usedPercent} color="blue" compact />
             )}
           </div>
           <button
@@ -59,20 +52,15 @@ export default memo(function TranslationPanel() {
             aria-label="번역 패널 닫기"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
 
-        {/* Original — compact on mobile to maximize space for translation */}
+        {/* Original */}
         <div className="mb-2">
           <p className="text-xs text-gray-500 mb-1">원문</p>
-          <p className="text-xs sm:text-sm text-gray-700 bg-gray-50 rounded-lg p-2 max-h-10 sm:max-h-20 overflow-auto line-clamp-2 sm:line-clamp-none">
+          <p className="text-xs sm:text-sm text-gray-700 bg-gray-50 rounded-lg p-2 max-h-10 sm:max-h-20 overflow-auto">
             {selectedText}
           </p>
         </div>
@@ -93,16 +81,14 @@ export default memo(function TranslationPanel() {
               <button
                 onClick={handleRetry}
                 disabled={retrySec > 0}
-                className="ml-3 px-3 py-1 text-xs bg-red-600 text-white rounded-md
-                           hover:bg-red-700 transition-colors font-medium shrink-0
-                           disabled:opacity-50 disabled:cursor-not-allowed"
+                className="ml-3 px-3 py-1 text-xs bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors font-medium shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {retrySec > 0 ? `${retrySec}초 후 재시도` : '재시도'}
               </button>
             </div>
           ) : (
             <div className="relative">
-              <p className="translation-result text-sm text-gray-900 bg-blue-50 rounded-lg p-2 pr-8 max-h-[20dvh] sm:max-h-48 overflow-auto leading-relaxed">
+              <p className="translation-result text-sm text-gray-900 bg-blue-50 rounded-lg p-2 pr-8 overflow-auto leading-relaxed">
                 {translationResult || '번역 결과가 없습니다.'}
               </p>
               {translationResult && (
