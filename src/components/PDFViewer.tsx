@@ -36,6 +36,7 @@ export default memo(function PDFViewer() {
   const setFitScale = useStore((s) => s.setFitScale);
   const translate = useStore((s) => s.translate);
   const selectedText = useStore((s) => s.selectedText);
+  const showTranslation = useStore((s) => s.showTranslation);
   const reset = useStore((s) => s.reset);
   const viewerMode = useStore((s) => s.viewerMode);
   const activeKeywords = useStore((s) => s.activeKeywords);
@@ -1087,7 +1088,8 @@ export default memo(function PDFViewer() {
   );
 
   // Mobile: fixed bottom bar when text selected
-  const mobileBarEl = isTouchDevice && selectedText && (
+  // Hide mobile bar when translation panel is open (it would cover the results)
+  const mobileBarEl = isTouchDevice && selectedText && !showTranslation && (
     <div className="fixed bottom-0 left-0 right-0 z-50 bg-blue-600 pb-safe animate-slide-up">
       <button
         onClick={handleTranslateClick}
