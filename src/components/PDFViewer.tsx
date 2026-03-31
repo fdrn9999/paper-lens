@@ -374,48 +374,46 @@ export default memo(function PDFViewer() {
         const span = textLayer?.querySelector(`[data-item-index="${hlSpan.itemIndex}"]`) as HTMLElement | null;
         if (!span) continue;
 
-        const spanLeft = span.offsetLeft;
-        const spanTop = span.offsetTop;
-        const spanW = span.offsetWidth;
-        const spanH = span.offsetHeight;
-
         const text = span.textContent || '';
-        let wordLeft = spanLeft, wordTop = spanTop, wordWidth = spanW, wordHeight = spanH;
+        let wordLeft: number, wordTop: number, wordWidth: number, wordHeight: number;
 
+        // Always use getBoundingClientRect for accuracy (respects scaleX transform)
+        const wrapperRect = pd.wrapper.getBoundingClientRect();
         const textNode = span.firstChild;
+
         if (textNode && textNode.nodeType === Node.TEXT_NODE && text.length > 0 && hlSpan.charEnd <= text.length) {
           try {
             const range = document.createRange();
             range.setStart(textNode, hlSpan.charStart);
             range.setEnd(textNode, hlSpan.charEnd);
             const rects = range.getClientRects();
-            if (rects.length > 0 && pd.wrapper) {
-              const wrapperRect = pd.wrapper.getBoundingClientRect();
+            if (rects.length > 0) {
               const rect = rects[0];
               wordLeft = rect.left - wrapperRect.left;
               wordTop = rect.top - wrapperRect.top;
               wordWidth = rect.width;
               wordHeight = rect.height;
+            } else {
+              // Fallback: use whole span rect
+              const spanRect = span.getBoundingClientRect();
+              wordLeft = spanRect.left - wrapperRect.left;
+              wordTop = spanRect.top - wrapperRect.top;
+              wordWidth = spanRect.width;
+              wordHeight = spanRect.height;
             }
           } catch {
-            if (text.length > 0) {
-              const canvas = document.createElement('canvas');
-              const ctx = canvas.getContext('2d');
-              if (ctx) {
-                ctx.font = `${span.style.fontSize} ${span.style.fontFamily || 'sans-serif'}`;
-                const fullWidth = ctx.measureText(text).width;
-                if (fullWidth > 0) {
-                  const ratio = spanW / fullWidth;
-                  wordLeft = spanLeft + ctx.measureText(text.slice(0, hlSpan.charStart)).width * ratio;
-                  wordWidth = ctx.measureText(text.slice(hlSpan.charStart, hlSpan.charEnd)).width * ratio;
-                } else {
-                  const charW = spanW / text.length;
-                  wordLeft = spanLeft + hlSpan.charStart * charW;
-                  wordWidth = (hlSpan.charEnd - hlSpan.charStart) * charW;
-                }
-              }
-            }
+            const spanRect = span.getBoundingClientRect();
+            wordLeft = spanRect.left - wrapperRect.left;
+            wordTop = spanRect.top - wrapperRect.top;
+            wordWidth = spanRect.width;
+            wordHeight = spanRect.height;
           }
+        } else {
+          const spanRect = span.getBoundingClientRect();
+          wordLeft = spanRect.left - wrapperRect.left;
+          wordTop = spanRect.top - wrapperRect.top;
+          wordWidth = spanRect.width;
+          wordHeight = spanRect.height;
         }
 
         const div = document.createElement('div');
@@ -504,14 +502,12 @@ export default memo(function PDFViewer() {
         const span = textLayer.querySelector(`[data-item-index="${hlSpan.itemIndex}"]`) as HTMLElement;
         if (!span) continue;
 
-        const spanLeft = span.offsetLeft;
-        const spanTop = span.offsetTop;
-        const spanW = span.offsetWidth;
-        const spanH = span.offsetHeight;
         const text = span.textContent || '';
-        let wordLeft = spanLeft, wordTop = spanTop, wordWidth = spanW, wordHeight = spanH;
+        let wordLeft: number, wordTop: number, wordWidth: number, wordHeight: number;
 
+        const wrapperRect = wrapper.getBoundingClientRect();
         const textNode = span.firstChild;
+
         if (textNode && textNode.nodeType === Node.TEXT_NODE && text.length > 0 && hlSpan.charEnd <= text.length) {
           try {
             const range = document.createRange();
@@ -519,32 +515,31 @@ export default memo(function PDFViewer() {
             range.setEnd(textNode, hlSpan.charEnd);
             const rects = range.getClientRects();
             if (rects.length > 0) {
-              const wrapperRect = wrapper.getBoundingClientRect();
               const rect = rects[0];
               wordLeft = rect.left - wrapperRect.left;
               wordTop = rect.top - wrapperRect.top;
               wordWidth = rect.width;
               wordHeight = rect.height;
+            } else {
+              const spanRect = span.getBoundingClientRect();
+              wordLeft = spanRect.left - wrapperRect.left;
+              wordTop = spanRect.top - wrapperRect.top;
+              wordWidth = spanRect.width;
+              wordHeight = spanRect.height;
             }
           } catch {
-            if (text.length > 0) {
-              const cvs = document.createElement('canvas');
-              const ctx = cvs.getContext('2d');
-              if (ctx) {
-                ctx.font = `${span.style.fontSize} ${span.style.fontFamily || 'sans-serif'}`;
-                const fullWidth = ctx.measureText(text).width;
-                if (fullWidth > 0) {
-                  const ratio = spanW / fullWidth;
-                  wordLeft = spanLeft + ctx.measureText(text.slice(0, hlSpan.charStart)).width * ratio;
-                  wordWidth = ctx.measureText(text.slice(hlSpan.charStart, hlSpan.charEnd)).width * ratio;
-                } else {
-                  const charW = spanW / text.length;
-                  wordLeft = spanLeft + hlSpan.charStart * charW;
-                  wordWidth = (hlSpan.charEnd - hlSpan.charStart) * charW;
-                }
-              }
-            }
+            const spanRect = span.getBoundingClientRect();
+            wordLeft = spanRect.left - wrapperRect.left;
+            wordTop = spanRect.top - wrapperRect.top;
+            wordWidth = spanRect.width;
+            wordHeight = spanRect.height;
           }
+        } else {
+          const spanRect = span.getBoundingClientRect();
+          wordLeft = spanRect.left - wrapperRect.left;
+          wordTop = spanRect.top - wrapperRect.top;
+          wordWidth = spanRect.width;
+          wordHeight = spanRect.height;
         }
 
         const div = document.createElement('div');
@@ -618,10 +613,11 @@ export default memo(function PDFViewer() {
     color: string, layer: HTMLElement,
   ) {
     const text = span.textContent || '';
-    let wordLeft = span.offsetLeft, wordTop = span.offsetTop;
-    let wordWidth = span.offsetWidth, wordHeight = span.offsetHeight;
+    let wordLeft: number, wordTop: number, wordWidth: number, wordHeight: number;
 
+    const wrapperRect = wrapper.getBoundingClientRect();
     const textNode = span.firstChild;
+
     if (textNode && textNode.nodeType === Node.TEXT_NODE && text.length > 0 && charEnd <= text.length) {
       try {
         const range = document.createRange();
@@ -629,18 +625,31 @@ export default memo(function PDFViewer() {
         range.setEnd(textNode, charEnd);
         const rects = range.getClientRects();
         if (rects.length > 0) {
-          const wrapperRect = wrapper.getBoundingClientRect();
           const rect = rects[0];
           wordLeft = rect.left - wrapperRect.left;
           wordTop = rect.top - wrapperRect.top;
           wordWidth = rect.width;
           wordHeight = rect.height;
+        } else {
+          const spanRect = span.getBoundingClientRect();
+          wordLeft = spanRect.left - wrapperRect.left;
+          wordTop = spanRect.top - wrapperRect.top;
+          wordWidth = spanRect.width;
+          wordHeight = spanRect.height;
         }
       } catch {
-        const charW = span.offsetWidth / Math.max(text.length, 1);
-        wordLeft = span.offsetLeft + charStart * charW;
-        wordWidth = (charEnd - charStart) * charW;
+        const spanRect = span.getBoundingClientRect();
+        wordLeft = spanRect.left - wrapperRect.left;
+        wordTop = spanRect.top - wrapperRect.top;
+        wordWidth = spanRect.width;
+        wordHeight = spanRect.height;
       }
+    } else {
+      const spanRect = span.getBoundingClientRect();
+      wordLeft = spanRect.left - wrapperRect.left;
+      wordTop = spanRect.top - wrapperRect.top;
+      wordWidth = spanRect.width;
+      wordHeight = spanRect.height;
     }
 
     const div = document.createElement('div');
