@@ -81,7 +81,7 @@ export default memo(function PageNavigator() {
             </svg>
           )}
           <span className="hidden sm:inline text-[10px]">
-            {viewerMode === 'scroll' ? '페이지' : '스크롤'}
+            {viewerMode === 'scroll' ? '스크롤' : '페이지'}
           </span>
         </button>
 
