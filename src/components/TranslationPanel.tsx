@@ -38,10 +38,8 @@ export default memo(function TranslationPanel() {
 
   return (
     <div className={`bg-white overflow-hidden transition-all duration-300 ease-out ${showTranslation ? 'max-h-[40dvh] border-t pb-safe' : 'max-h-0'}`}>
-      {/* Selected text bar removed — floating button in PDFViewer handles trigger */}
-
       {/* Translation result — always rendered, clipped by overflow-hidden when max-h-0 */}
-      <div className="px-3 sm:px-4 py-3">
+      <div className="px-3 sm:px-4 py-2 sm:py-3 max-h-[40dvh] overflow-auto">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-3">
             <h3 className="text-sm font-semibold text-gray-700">번역 결과</h3>
