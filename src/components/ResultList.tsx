@@ -39,8 +39,8 @@ function HighlightedContext({ result, isCurrent }: { result: SearchResult; isCur
 
   if (!match) {
     return (
-      <p className="text-gray-700 leading-relaxed truncate">
-        {result.context.slice(0, 80)}{result.context.length > 80 ? '...' : ''}
+      <p className="text-gray-700 leading-snug text-xs line-clamp-2">
+        {result.context.slice(0, 120)}{result.context.length > 120 ? '...' : ''}
       </p>
     );
   }
@@ -49,11 +49,9 @@ function HighlightedContext({ result, isCurrent }: { result: SearchResult; isCur
   const highlighted = result.context.slice(match.start, match.end);
   const after = result.context.slice(match.end);
 
-  // Budget: distribute ~70 chars around the match, weighted toward showing the keyword in context
-  const matchLen = highlighted.length;
-  const budget = Math.max(70 - matchLen, 20);
-  const beforeBudget = Math.min(Math.ceil(budget * 0.4), before.length);
-  const afterBudget = Math.min(Math.floor(budget * 0.6), after.length);
+  // Keep before short so the keyword is always visible, even on narrow sidebars
+  const beforeBudget = Math.min(20, before.length);
+  const afterBudget = Math.min(60, after.length);
 
   const beforeText = before.length > beforeBudget
     ? '...' + before.slice(-beforeBudget)
@@ -65,7 +63,7 @@ function HighlightedContext({ result, isCurrent }: { result: SearchResult; isCur
   const color = result.termColor || '#FFD500';
 
   return (
-    <p className="text-gray-700 leading-relaxed truncate">
+    <p className="text-gray-700 leading-snug text-xs line-clamp-2">
       {beforeText}
       <span
         className="font-bold"
