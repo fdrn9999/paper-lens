@@ -368,20 +368,26 @@ export default memo(function PDFViewer() {
     if (pageResults.length === 0) return;
 
     const textLayer = textLayerDivRef.current;
+    const color_default = '#FFD500';
     for (const result of pageResults) {
-      const spanList = result.spans || [{ itemIndex: result.itemIndex, charStart: result.charStart, charEnd: result.charEnd }];
+      const color = result.termColor || color_default;
 
-      for (const hlSpan of spanList) {
-        const span = textLayer?.querySelector(`[data-item-index="${hlSpan.itemIndex}"]`) as HTMLElement | null;
+      if (result.spans && result.spans.length > 1) {
+        // Multi-span: match crosses item boundaries, use per-span positions
+        for (const hlSpan of result.spans) {
+          const span = textLayer?.querySelector(`[data-item-index="${hlSpan.itemIndex}"]`) as HTMLElement | null;
+          if (!span) continue;
+          createHighlightMark(span, pd.wrapper, hlSpan.charStart, hlSpan.charEnd, color, hl, result.id);
+        }
+      } else {
+        // Single span: find token directly in span text (keyword-style precision)
+        const span = textLayer?.querySelector(`[data-item-index="${result.itemIndex}"]`) as HTMLElement | null;
         if (!span) continue;
-
-        const r = computeHighlightRect(span, pd.wrapper, hlSpan.charStart, hlSpan.charEnd);
-        const div = document.createElement('div');
-        div.className = 'highlight-mark search';
-        div.dataset.resultId = result.id;
-        const color = result.termColor || '#FFD500';
-        div.style.cssText = `left:${r.left}px;top:${r.top}px;width:${Math.max(r.width, 4)}px;height:${r.height}px;background-color:${color}40;border-bottom:2px solid ${color};`;
-        hl.appendChild(div);
+        const spanText = span.textContent || '';
+        const pos = findTokenInSpanText(spanText, result.matchedToken, result.charStart);
+        if (pos) {
+          createHighlightMark(span, pd.wrapper, pos.start, pos.end, color, hl, result.id);
+        }
       }
     }
   }, [pageReady, searchResults, currentPage, scale, viewerMode]);
@@ -516,19 +522,24 @@ export default memo(function PDFViewer() {
     const pageResults = results.filter((r) => r.page === pageNum);
     if (pageResults.length === 0) return;
 
+    const color_default = '#FFD500';
     for (const result of pageResults) {
-      const spanList = result.spans || [{ itemIndex: result.itemIndex, charStart: result.charStart, charEnd: result.charEnd }];
-      for (const hlSpan of spanList) {
-        const span = textLayer.querySelector(`[data-item-index="${hlSpan.itemIndex}"]`) as HTMLElement;
-        if (!span) continue;
+      const color = result.termColor || color_default;
 
-        const r = computeHighlightRect(span, wrapper, hlSpan.charStart, hlSpan.charEnd);
-        const div = document.createElement('div');
-        div.className = 'highlight-mark search';
-        div.dataset.resultId = result.id;
-        const color = result.termColor || '#FFD500';
-        div.style.cssText = `left:${r.left}px;top:${r.top}px;width:${Math.max(r.width, 4)}px;height:${r.height}px;background-color:${color}40;border-bottom:2px solid ${color};`;
-        hlLayer.appendChild(div);
+      if (result.spans && result.spans.length > 1) {
+        for (const hlSpan of result.spans) {
+          const span = textLayer.querySelector(`[data-item-index="${hlSpan.itemIndex}"]`) as HTMLElement;
+          if (!span) continue;
+          createHighlightMark(span, wrapper, hlSpan.charStart, hlSpan.charEnd, color, hlLayer, result.id);
+        }
+      } else {
+        const span = textLayer.querySelector(`[data-item-index="${result.itemIndex}"]`) as HTMLElement;
+        if (!span) continue;
+        const spanText = span.textContent || '';
+        const pos = findTokenInSpanText(spanText, result.matchedToken, result.charStart);
+        if (pos) {
+          createHighlightMark(span, wrapper, pos.start, pos.end, color, hlLayer, result.id);
+        }
       }
     }
   }, []);
@@ -570,14 +581,14 @@ export default memo(function PDFViewer() {
           const mwRe = new RegExp('\\b' + escaped + '\\b', 'gi');
           let mwMatch;
           while ((mwMatch = mwRe.exec(text)) !== null) {
-            createKwMark(span, wrapper, mwMatch.index, mwMatch.index + mwMatch[0].length, color, kwLayer);
+            createHighlightMark(span, wrapper, mwMatch.index, mwMatch.index + mwMatch[0].length, color, kwLayer);
           }
         } else {
           tokenRe.lastIndex = 0;
           let m;
           while ((m = tokenRe.exec(text)) !== null) {
             if (m[0].toLowerCase() === term) {
-              createKwMark(span, wrapper, m.index, m.index + m[0].length, color, kwLayer);
+              createHighlightMark(span, wrapper, m.index, m.index + m[0].length, color, kwLayer);
             }
           }
         }
@@ -587,16 +598,72 @@ export default memo(function PDFViewer() {
     if (kwLayer.childElementCount > 0) wrapper.appendChild(kwLayer);
   }, []);
 
-  function createKwMark(
+  /** Create a single highlight mark on a span (shared by search & keyword highlights) */
+  function createHighlightMark(
     span: HTMLElement, wrapper: HTMLElement,
     charStart: number, charEnd: number,
     color: string, layer: HTMLElement,
+    resultId?: string,
   ) {
     const r = computeHighlightRect(span, wrapper, charStart, charEnd);
     const div = document.createElement('div');
-    div.className = 'highlight-mark keyword';
+    div.className = resultId ? 'highlight-mark search' : 'highlight-mark keyword';
+    if (resultId) div.dataset.resultId = resultId;
     div.style.cssText = `left:${r.left}px;top:${r.top}px;width:${Math.max(r.width, 4)}px;height:${r.height}px;background-color:${color}40;border-bottom:2px solid ${color};`;
     layer.appendChild(div);
+  }
+
+  /**
+   * Find matchedToken in span text at render time (keyword-style approach).
+   * Returns charStart/charEnd within the span, or null if not found.
+   */
+  function findTokenInSpanText(
+    spanText: string, token: string, hintCharStart: number,
+  ): { start: number; end: number } | null {
+    const textLower = spanText.toLowerCase();
+    const tokenLower = token.toLowerCase();
+
+    // 1. Direct indexOf — handles most cases
+    let bestIdx = -1;
+    let searchFrom = 0;
+    while (searchFrom < spanText.length) {
+      const idx = textLower.indexOf(tokenLower, searchFrom);
+      if (idx < 0) break;
+      // Prefer the occurrence closest to the pre-computed hint
+      if (bestIdx < 0 || Math.abs(idx - hintCharStart) < Math.abs(bestIdx - hintCharStart)) {
+        bestIdx = idx;
+      }
+      searchFrom = idx + 1;
+    }
+    if (bestIdx >= 0) return { start: bestIdx, end: bestIdx + token.length };
+
+    // 2. Stripped match (CJK whitespace differences: "인공 지능" vs "인공지능")
+    const stripRe = /\s/g;
+    const strippedText = textLower.replace(stripRe, '');
+    const strippedToken = tokenLower.replace(stripRe, '');
+    if (strippedToken.length > 0) {
+      const si = strippedText.indexOf(strippedToken);
+      if (si >= 0) {
+        // Map stripped index back to original
+        let count = 0;
+        let origStart = -1;
+        let origEnd = -1;
+        for (let i = 0; i < spanText.length; i++) {
+          if (/\s/.test(spanText[i])) continue;
+          if (count === si) origStart = i;
+          count++;
+          if (count === si + strippedToken.length) { origEnd = i + 1; break; }
+        }
+        if (origStart >= 0 && origEnd > origStart) return { start: origStart, end: origEnd };
+      }
+    }
+
+    // 3. Fallback: pre-computed hint if within bounds
+    if (hintCharStart >= 0 && hintCharStart + token.length <= spanText.length) {
+      return { start: hintCharStart, end: hintCharStart + token.length };
+    }
+
+    return null;
   }
 
   // ===== Effect 4c: Keyword highlights (PAGE MODE) =====
