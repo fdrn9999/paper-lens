@@ -361,9 +361,7 @@ const useStore = create<AppState>()(
           set({ searchResults: deduped, currentResultIndex: newIndex, lastSearchedQuery: termsKey, isSearching: false });
           if (deduped.length > 0 && !isReSearch) {
             set({ currentPage: deduped[0].page });
-            if (deduped.length > 0 && !isReSearch && prevResults.length === 0) {
-              if (typeof window !== 'undefined' && window.innerWidth < 1024) set({ isSidebarOpen: true });
-            }
+            if (typeof window !== 'undefined' && window.innerWidth < 1024) set({ isSidebarOpen: true, sidebarTab: 'search' });
           }
         }, 0);
       },
