@@ -360,8 +360,8 @@ const useStore = create<AppState>()(
             : deduped.length > 0 ? 0 : -1;
           set({ searchResults: deduped, currentResultIndex: newIndex, lastSearchedQuery: termsKey, isSearching: false });
           if (deduped.length > 0 && !isReSearch) {
-            set({ currentPage: deduped[0].page });
-            if (typeof window !== 'undefined' && window.innerWidth < 1024) set({ isSidebarOpen: true, sidebarTab: 'search' });
+            set({ currentPage: deduped[0].page, sidebarTab: 'search' });
+            if (typeof window !== 'undefined' && window.innerWidth < 1024) set({ isSidebarOpen: true });
           }
         }, 0);
       },
