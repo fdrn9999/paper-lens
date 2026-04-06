@@ -40,7 +40,7 @@ function HighlightedContext({ result, isCurrent }: { result: SearchResult; isCur
   if (!match) {
     return (
       <p className="text-gray-700 leading-relaxed truncate">
-        {result.context.slice(0, 60)}{result.context.length > 60 ? '...' : ''}
+        {result.context.slice(0, 80)}{result.context.length > 80 ? '...' : ''}
       </p>
     );
   }
@@ -49,17 +49,37 @@ function HighlightedContext({ result, isCurrent }: { result: SearchResult; isCur
   const highlighted = result.context.slice(match.start, match.end);
   const after = result.context.slice(match.end);
 
+  // Budget: distribute ~70 chars around the match, weighted toward showing the keyword in context
+  const matchLen = highlighted.length;
+  const budget = Math.max(70 - matchLen, 20);
+  const beforeBudget = Math.min(Math.ceil(budget * 0.4), before.length);
+  const afterBudget = Math.min(Math.floor(budget * 0.6), after.length);
+
+  const beforeText = before.length > beforeBudget
+    ? '...' + before.slice(-beforeBudget)
+    : before;
+  const afterText = after.length > afterBudget
+    ? after.slice(0, afterBudget) + '...'
+    : after;
+
+  const color = result.termColor || '#FFD500';
+
   return (
     <p className="text-gray-700 leading-relaxed truncate">
-      {before.length > 30
-        ? '...' + before.slice(-30)
-        : before}
-      <span className={`font-bold ${isCurrent ? 'text-orange-600' : 'text-yellow-600'}`}>
+      {beforeText}
+      <span
+        className="font-bold"
+        style={{
+          color: isCurrent ? '#ea580c' : undefined,
+          backgroundColor: isCurrent ? 'rgba(255,100,0,0.12)' : `${color}30`,
+          borderBottom: `2px solid ${isCurrent ? '#ea580c' : color}`,
+          borderRadius: '1px',
+          padding: '0 1px',
+        }}
+      >
         {highlighted}
       </span>
-      {after.length > 30
-        ? after.slice(0, 30) + '...'
-        : after}
+      {afterText}
     </p>
   );
 }

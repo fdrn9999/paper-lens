@@ -377,10 +377,10 @@ export default memo(function PDFViewer() {
 
         const r = computeHighlightRect(span, pd.wrapper, hlSpan.charStart, hlSpan.charEnd);
         const div = document.createElement('div');
-        div.className = 'highlight-mark';
+        div.className = 'highlight-mark search';
         div.dataset.resultId = result.id;
-        const bgStyle = result.termColor ? `background-color:${result.termColor}66;` : '';
-        div.style.cssText = `left:${r.left}px;top:${r.top}px;width:${Math.max(r.width, 8)}px;height:${r.height}px;${bgStyle}`;
+        const color = result.termColor || '#FFD500';
+        div.style.cssText = `left:${r.left}px;top:${r.top}px;width:${Math.max(r.width, 4)}px;height:${r.height}px;background-color:${color}40;border-bottom:2px solid ${color};`;
         hl.appendChild(div);
       }
     }
@@ -401,9 +401,11 @@ export default memo(function PDFViewer() {
       const el = mark as HTMLElement;
       if (el.dataset.resultId === currentId) {
         el.classList.add('current');
-        // Override inline background-color so CSS .current orange shows through
+        // Override inline styles so CSS .current shows through
         el.dataset.origBg = el.style.backgroundColor || '';
+        el.dataset.origBorder = el.style.borderBottom || '';
         el.style.backgroundColor = '';
+        el.style.borderBottom = '';
         if (!scrolled) {
           scrolled = true;
           requestAnimationFrame(() => {
@@ -413,7 +415,9 @@ export default memo(function PDFViewer() {
       } else {
         el.classList.remove('current');
         el.style.backgroundColor = el.dataset.origBg ?? '';
+        el.style.borderBottom = el.dataset.origBorder ?? '';
         delete el.dataset.origBg;
+        delete el.dataset.origBorder;
       }
     });
   }, [currentResultIndex, searchResults, pageReady, viewerMode]);
@@ -520,10 +524,10 @@ export default memo(function PDFViewer() {
 
         const r = computeHighlightRect(span, wrapper, hlSpan.charStart, hlSpan.charEnd);
         const div = document.createElement('div');
-        div.className = 'highlight-mark';
+        div.className = 'highlight-mark search';
         div.dataset.resultId = result.id;
-        const bgStyle = result.termColor ? `background-color:${result.termColor}66;` : '';
-        div.style.cssText = `left:${r.left}px;top:${r.top}px;width:${Math.max(r.width, 8)}px;height:${r.height}px;${bgStyle}`;
+        const color = result.termColor || '#FFD500';
+        div.style.cssText = `left:${r.left}px;top:${r.top}px;width:${Math.max(r.width, 4)}px;height:${r.height}px;background-color:${color}40;border-bottom:2px solid ${color};`;
         hlLayer.appendChild(div);
       }
     }
@@ -783,7 +787,9 @@ export default memo(function PDFViewer() {
       if (el.dataset.resultId === currentId) {
         el.classList.add('current');
         el.dataset.origBg = el.style.backgroundColor || '';
+        el.dataset.origBorder = el.style.borderBottom || '';
         el.style.backgroundColor = '';
+        el.style.borderBottom = '';
         if (!scrolled) {
           scrolled = true;
           requestAnimationFrame(() => {
@@ -793,7 +799,9 @@ export default memo(function PDFViewer() {
       } else {
         el.classList.remove('current');
         el.style.backgroundColor = el.dataset.origBg ?? '';
+        el.style.borderBottom = el.dataset.origBorder ?? '';
         delete el.dataset.origBg;
+        delete el.dataset.origBorder;
       }
     });
   }, [viewerMode, currentResultIndex, searchResults]);
