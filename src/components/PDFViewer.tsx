@@ -1134,9 +1134,18 @@ export default memo(function PDFViewer() {
     </div>
   );
 
+  // Pinned to the non-scrolling viewer frame so it stays visible while the PDF scrolls.
+  const dragHintEl = showDragHint && (
+    <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 rounded-full bg-purple-600/90 px-3 py-1.5 text-xs text-white shadow-md">
+      <span>💡 텍스트를 드래그하면 바로 번역돼요</span>
+      <button onClick={dismissDragHint} aria-label="힌트 닫기" className="ml-1 opacity-80 hover:opacity-100">✕</button>
+    </div>
+  );
+
   // === Scroll mode ===
   if (viewerMode === 'scroll') {
     return (
+      <div className="relative h-full">
       <div
         ref={scrollContainerRef}
         onMouseDown={handleMouseDown}
@@ -1165,19 +1174,15 @@ export default memo(function PDFViewer() {
           </div>
         ))}
         {floatingBtnEl}
-        {showDragHint && (
-          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 rounded-full bg-purple-600/90 px-3 py-1.5 text-xs text-white shadow-md">
-            <span>💡 텍스트를 드래그하면 바로 번역돼요</span>
-            <button onClick={dismissDragHint} aria-label="힌트 닫기" className="ml-1 opacity-80 hover:opacity-100">✕</button>
-          </div>
-        )}
-
+      </div>
+      {dragHintEl}
       </div>
     );
   }
 
   // === Page mode ===
   return (
+    <div className="relative h-full">
     <div
       onMouseDown={handleMouseDown}
       onMouseUp={handleMouseUp}
@@ -1185,12 +1190,6 @@ export default memo(function PDFViewer() {
     >
       <div ref={canvasContainerRef} />
       {floatingBtnEl}
-      {showDragHint && (
-        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 rounded-full bg-purple-600/90 px-3 py-1.5 text-xs text-white shadow-md">
-          <span>💡 텍스트를 드래그하면 바로 번역돼요</span>
-          <button onClick={dismissDragHint} aria-label="힌트 닫기" className="ml-1 opacity-80 hover:opacity-100">✕</button>
-        </div>
-      )}
       {renderingCanvas && (
         <div className="absolute inset-0 flex items-center justify-center bg-white/50 z-20">
           <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-lg shadow">
@@ -1199,6 +1198,8 @@ export default memo(function PDFViewer() {
           </div>
         </div>
       )}
+    </div>
+    {dragHintEl}
     </div>
   );
 });
