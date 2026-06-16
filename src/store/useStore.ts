@@ -27,6 +27,7 @@ const SEARCH_TERM_COLORS = [
 
 let translateAbortController: AbortController | null = null;
 let chatAbortController: AbortController | null = null;
+let summaryAbortController: AbortController | null = null;
 const quotaTimerMap: Record<string, ReturnType<typeof setTimeout>> = {};
 let progressiveSearchTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -243,6 +244,7 @@ const useStore = create<AppState>()(
       setPdfFile: (file) => set({ pdfFile: file }),
       setPdfData: (data) => {
         if (chatAbortController) { chatAbortController.abort(); chatAbortController = null; }
+        if (summaryAbortController) { summaryAbortController.abort(); summaryAbortController = null; }
         if (translateAbortController) { translateAbortController.abort(); translateAbortController = null; }
         clearQuotaTimers();
         if (progressiveSearchTimer) { clearTimeout(progressiveSearchTimer); progressiveSearchTimer = null; }
@@ -643,9 +645,9 @@ const useStore = create<AppState>()(
         const pages = get().pageTextContents;
         if (pages.length === 0) return;
 
-        if (chatAbortController) chatAbortController.abort();
+        if (summaryAbortController) summaryAbortController.abort();
         const controller = new AbortController();
-        chatAbortController = controller;
+        summaryAbortController = controller;
 
         set({ isSummarizing: true });
 
@@ -677,13 +679,16 @@ const useStore = create<AppState>()(
           if (err instanceof Error && err.name === 'AbortError') return;
           set({ chatSummary: '논문 요약 중 오류가 발생했습니다.' });
         } finally {
-          if (chatAbortController === controller) chatAbortController = null;
-          set({ isSummarizing: false });
+          if (summaryAbortController === controller) {
+            summaryAbortController = null;
+            set({ isSummarizing: false });
+          }
         }
       },
 
       clearChat: () => {
         if (chatAbortController) { chatAbortController.abort(); chatAbortController = null; }
+        if (summaryAbortController) { summaryAbortController.abort(); summaryAbortController = null; }
         set({ chatMessages: [], chatSummary: null, isChatLoading: false, isSummarizing: false });
       },
 
@@ -763,6 +768,7 @@ const useStore = create<AppState>()(
       reset: () => {
         if (translateAbortController) { translateAbortController.abort(); translateAbortController = null; }
         if (chatAbortController) { chatAbortController.abort(); chatAbortController = null; }
+        if (summaryAbortController) { summaryAbortController.abort(); summaryAbortController = null; }
         clearQuotaTimers();
         const { hasSeenTutorial, dailyUsage, viewerMode } = get();
         set({
