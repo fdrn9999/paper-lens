@@ -181,10 +181,16 @@ export default function GuideOverlay() {
   }, [isGuideActive, tutorialStep, updatePosition]);
 
   // Escape to close + focus trap (keep Tab focus inside the dialog).
+  // tutorialStep is a dep so that when a step swaps the rendered branch
+  // (center modal <-> positioned tooltip) and drops focus to <body>, we
+  // pull it back in — but only when focus has actually escaped the dialog,
+  // so we never steal focus from the button the user just clicked.
   useEffect(() => {
     if (!isGuideActive) return;
     const dialog = dialogRef.current;
-    dialog?.focus({ preventScroll: true });
+    if (dialog && !dialog.contains(document.activeElement)) {
+      dialog.focus({ preventScroll: true });
+    }
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -206,12 +212,15 @@ export default function GuideOverlay() {
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
       const active = document.activeElement;
+      const inside = dialog.contains(active);
       if (e.shiftKey) {
-        if (active === first || active === dialog) {
+        // Wrap to the end when leaving the first element, or pull focus
+        // back in if it has escaped the dialog entirely.
+        if (!inside || active === first || active === dialog) {
           e.preventDefault();
           last.focus();
         }
-      } else if (active === last) {
+      } else if (!inside || active === last) {
         e.preventDefault();
         first.focus();
       }
