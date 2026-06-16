@@ -60,7 +60,7 @@ export default memo(function TranslationPanel() {
         {/* Original */}
         <div className="mb-2">
           <p className="text-xs text-gray-500 mb-1">원문</p>
-          <p className="text-xs sm:text-sm text-gray-700 bg-gray-50 rounded-lg p-2 max-h-10 sm:max-h-20 overflow-auto">
+          <p className="text-xs sm:text-sm text-gray-700 bg-gray-50 rounded-lg p-2 max-h-24 sm:max-h-28 overflow-auto">
             {selectedText}
           </p>
         </div>
