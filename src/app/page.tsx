@@ -128,19 +128,21 @@ export default function Home() {
         }
       }
 
-      // Shared shortcuts (both modes)
-      if (e.key === 'PageUp') {
-        e.preventDefault();
-        if (cp > 1) setCurrentPage(cp - 1);
-      } else if (e.key === 'PageDown') {
-        e.preventDefault();
-        if (cp < tp) setCurrentPage(cp + 1);
-      } else if (e.key === 'Home') {
-        e.preventDefault();
-        setCurrentPage(1);
-      } else if (e.key === 'End') {
-        e.preventDefault();
-        setCurrentPage(tp);
+      // Shared shortcuts (both modes) — skip when OS/browser modifiers are held
+      if (!(e.ctrlKey || e.metaKey || e.altKey)) {
+        if (e.key === 'PageUp') {
+          e.preventDefault();
+          if (cp > 1) setCurrentPage(cp - 1);
+        } else if (e.key === 'PageDown') {
+          e.preventDefault();
+          if (cp < tp) setCurrentPage(cp + 1);
+        } else if (e.key === 'Home') {
+          e.preventDefault();
+          setCurrentPage(1);
+        } else if (e.key === 'End') {
+          e.preventDefault();
+          setCurrentPage(tp);
+        }
       }
     };
     document.addEventListener('keydown', handleKeyDown);
