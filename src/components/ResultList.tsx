@@ -127,6 +127,7 @@ const ResultItem = memo(function ResultItem({
 
   return (
     <button
+      id={`result-option-${result.id}`}
       role="option"
       aria-selected={isCurrent}
       aria-label={`페이지 ${result.page}: ${result.matchedToken}`}
@@ -343,6 +344,7 @@ export default memo(function ResultList() {
       className="overflow-auto h-full"
       role="listbox"
       aria-label="검색 결과 목록"
+      aria-activedescendant={currentResultIndex >= 0 && searchResults[currentResultIndex] ? `result-option-${searchResults[currentResultIndex].id}` : undefined}
       tabIndex={0}
       onKeyDown={handleKeyDown}
       onScroll={handleScroll}
