@@ -205,6 +205,7 @@ export default memo(function KeywordPanel() {
   const keywordProgress = useStore((s) => s.keywordProgress);
   const pdfData = useStore((s) => s.pdfData);
   const pageTextContents = useStore((s) => s.pageTextContents);
+  const textExtractionFailed = useStore((s) => s.textExtractionFailed);
   const setKeywordAlgorithm = useStore((s) => s.setKeywordAlgorithm);
   const toggleKeywordHighlight = useStore((s) => s.toggleKeywordHighlight);
   const toggleAllKeywordHighlights = useStore((s) => s.toggleAllKeywordHighlights);
@@ -251,7 +252,9 @@ export default memo(function KeywordPanel() {
     return (
       <div className="flex-1 flex items-center justify-center p-6">
         <p className="text-sm text-gray-400 text-center">
-          PDF를 업로드하면 키워드가<br />자동으로 추출됩니다.
+          {textExtractionFailed
+            ? '이 PDF에서는 텍스트를 추출하지 못해 키워드를 만들 수 없습니다.'
+            : <>PDF를 업로드하면 키워드가<br />자동으로 추출됩니다.</>}
         </p>
       </div>
     );

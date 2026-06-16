@@ -35,6 +35,7 @@ export default memo(function PDFViewer() {
   const setSelectedText = useStore((s) => s.setSelectedText);
   const setScale = useStore((s) => s.setScale);
   const setIsExtracting = useStore((s) => s.setIsExtracting);
+  const setTextExtractionFailed = useStore((s) => s.setTextExtractionFailed);
   const setFitScale = useStore((s) => s.setFitScale);
   const translate = useStore((s) => s.translate);
   const selectedText = useStore((s) => s.selectedText);
@@ -244,11 +245,17 @@ export default memo(function PDFViewer() {
           setIsExtracting(false);
         }
       } catch (err) {
-        if (!cancelled && process.env.NODE_ENV !== 'production') console.error('Text extraction error:', err);
+        if (!cancelled) {
+          setTextExtractionFailed(true);
+          window.dispatchEvent(new CustomEvent('paperlens-toast', {
+            detail: { text: '이 PDF는 텍스트 추출이 어렵습니다. 검색·키워드 기능이 제한될 수 있어요.', type: 'error' },
+          }));
+          if (process.env.NODE_ENV !== 'production') console.error('Text extraction failed', err);
+        }
       }
     })();
     return () => { cancelled = true; setIsExtracting(false); };
-  }, [pdfDoc, setPageTextContents, setIsExtracting]);
+  }, [pdfDoc, setPageTextContents, setIsExtracting, setTextExtractionFailed]);
 
   // ===== Effect 3: Render canvas + pdfjs TextLayer (PAGE MODE) =====
   useEffect(() => {

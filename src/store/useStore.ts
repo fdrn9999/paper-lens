@@ -89,6 +89,7 @@ interface AppState {
   pageTextContents: PageTextContent[];
   isLoadingPdf: boolean;
   isExtracting: boolean;
+  textExtractionFailed: boolean;
 
   searchQuery: string;
   searchResults: SearchResult[];
@@ -144,6 +145,7 @@ interface AppState {
   setPageTextContents: (contents: PageTextContent[]) => void;
   setIsLoadingPdf: (v: boolean) => void;
   setIsExtracting: (v: boolean) => void;
+  setTextExtractionFailed: (failed: boolean) => void;
 
   setSearchQuery: (q: string) => void;
   setCaseSensitive: (v: boolean) => void;
@@ -198,6 +200,7 @@ const initialState = {
   pageTextContents: [],
   isLoadingPdf: false,
   isExtracting: false,
+  textExtractionFailed: false,
   searchQuery: '',
   searchResults: [],
   currentResultIndex: -1,
@@ -258,6 +261,7 @@ const useStore = create<AppState>()(
           currentResultIndex: -1,
           searchTerms: [],
           isExtracting: false,
+          textExtractionFailed: false,
           isSearching: false,
           isTranslating: false,
           isLoadingPdf: false,
@@ -297,6 +301,7 @@ const useStore = create<AppState>()(
         }
       },
       setIsLoadingPdf: (v) => set({ isLoadingPdf: v }),
+      setTextExtractionFailed: (failed) => set({ textExtractionFailed: failed }),
       setIsExtracting: (v) => {
         set({ isExtracting: v });
         if (!v) {
@@ -776,6 +781,7 @@ const useStore = create<AppState>()(
           hasSeenTutorial,
           dailyUsage,
           viewerMode,
+          textExtractionFailed: false,
           keywords: null,
           allKeywords: {},
           activeKeywords: [],
