@@ -1138,7 +1138,13 @@ export default memo(function PDFViewer() {
               background: 'white',
               boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
             }}
-          />
+            className="flex items-center justify-center bg-gray-50"
+          >
+            <div className="flex flex-col items-center gap-2 text-gray-400">
+              <span className="inline-block w-6 h-6 border-2 border-gray-300 border-t-gray-500 rounded-full animate-spin" aria-hidden="true" />
+              <span className="text-xs">페이지 불러오는 중…</span>
+            </div>
+          </div>
         ))}
         {floatingBtnEl}
 
