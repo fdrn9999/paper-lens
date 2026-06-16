@@ -27,19 +27,18 @@ export async function checkRateLimit(key: string): Promise<{ allowed: boolean; r
           const redisKey = `rl:${key}`;
           const count = await redis.incr(redisKey);
 
-      if (count === 1) {
-              // First request in this window — set expiry
-            await redis.pexpire(redisKey, WINDOW_MS);
-      }
+      // Self-heal the expiry: set it whenever the key has no TTL (not only when count===1).
+      // A lost pexpire could otherwise leave the key immortal → that IP throttled forever.
+      const ttl = await redis.pttl(redisKey);
+      if (ttl < 0) await redis.pexpire(redisKey, WINDOW_MS);
 
       if (count > MAX_REQUESTS) {
-              const ttl = await redis.pttl(redisKey);
               return { allowed: false, retryAfterMs: ttl > 0 ? ttl : WINDOW_MS };
       }
 
       return { allowed: true, retryAfterMs: 0 };
     } catch (error) {
-          // If Redis is down, allow the request (fail-open)
+          // Per-minute limiter stays fail-open (availability over strictness).
       console.error('Rate limit Redis error:', error);
           return { allowed: true, retryAfterMs: 0 };
     }
@@ -113,8 +112,9 @@ export async function checkGlobalQuota(
               usedPercent: Math.round((newTotal / limit) * 100),
       };
   } catch (error) {
+        // Global budget gates real API cost → fail CLOSED when Redis is unavailable.
         console.error('Global quota Redis error:', error);
-        return { allowed: true, usedChars: 0, limitChars: limit, usedPercent: 0 };
+        return { allowed: false, usedChars: 0, limitChars: limit, usedPercent: 100 };
   }
 }
 
@@ -165,17 +165,15 @@ export async function checkDailyQuota(
 
 /**
  * Extracts client IP from request headers.
- * Uses the rightmost IP in x-forwarded-for to prevent spoofing
- * (the rightmost value is set by the nearest trusted proxy).
- * On platforms like Vercel, the platform overwrites these headers so they are trustworthy.
+ * Uses the rightmost IP in x-forwarded-for (appended by the nearest trusted proxy, e.g. Vercel).
+ * The client-controllable x-real-ip is NOT used as a fallback — trusting it would let an attacker
+ * mint a fresh per-IP quota / rate-limit bucket per request by spoofing the header.
  */
 export function getClientIp(request: Request): string {
-    const headers = request.headers;
-    const forwarded = headers.get('x-forwarded-for');
+    const forwarded = request.headers.get('x-forwarded-for');
     if (forwarded) {
-          const ips = forwarded.split(',').map((ip) => ip.trim());
-          // Rightmost IP is added by the nearest trusted proxy, harder to spoof
-      return ips[ips.length - 1] || 'unknown';
+          const ips = forwarded.split(',').map((ip) => ip.trim()).filter(Boolean);
+          if (ips.length > 0) return ips[ips.length - 1];
     }
-    return headers.get('x-real-ip') || 'unknown';
+    return 'unknown';
 }
