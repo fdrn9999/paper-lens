@@ -80,4 +80,6 @@ export interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
   timestamp: number;
+  /** True for locally-generated error messages; excluded from API history */
+  isError?: boolean;
 }

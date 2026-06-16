@@ -566,7 +566,7 @@ const useStore = create<AppState>()(
 
           // Build history for API
           const history = get().chatMessages
-            .filter((m) => m.id !== userMsg.id)
+            .filter((m) => m.id !== userMsg.id && !m.isError)
             .map((m) => ({ role: m.role === 'user' ? 'user' : 'model', content: m.content }));
 
           const res = await fetchWithTimeout('/api/chat', {
@@ -589,6 +589,7 @@ const useStore = create<AppState>()(
               role: 'assistant',
               content: data.error || '사용량 한도를 초과했습니다. 내일 다시 시도해주세요.',
               timestamp: Date.now(),
+              isError: true,
             };
             set((s) => ({ chatMessages: [...s.chatMessages, errMsg] }));
             return;
@@ -600,6 +601,7 @@ const useStore = create<AppState>()(
               role: 'assistant',
               content: `오류가 발생했습니다. (${res.status})`,
               timestamp: Date.now(),
+              isError: true,
             };
             set((s) => ({ chatMessages: [...s.chatMessages, errMsg] }));
             return;
@@ -625,6 +627,7 @@ const useStore = create<AppState>()(
             role: 'assistant',
             content: errContent,
             timestamp: Date.now(),
+            isError: true,
           };
           set((s) => ({ chatMessages: [...s.chatMessages, errMsg] }));
         } finally {
