@@ -87,8 +87,16 @@ const KeywordCard = memo(function KeywordCard({
   const scorePct = Math.round(keyword.score * 100);
 
   return (
-    <button
+    <div
+      role="button"
+      tabIndex={0}
       onClick={handleClick}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          handleClick();
+        }
+      }}
       className={`w-full text-left rounded-lg border transition-all duration-150 overflow-hidden ${
         isActive
           ? 'ring-1 ring-offset-1 shadow-sm'
@@ -185,7 +193,7 @@ const KeywordCard = memo(function KeywordCard({
           )}
         </div>
       </div>
-    </button>
+    </div>
   );
 });
 
