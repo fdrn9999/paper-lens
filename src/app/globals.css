@@ -11,15 +11,16 @@
    Use these tiers; do not invent new ad-hoc z-[NNN] values.
      base / highlight        : 0–10   (in-flow content, text highlights)
      header                  : 40
-     drawer-backdrop         : 30
+     drawer-backdrop         : 30     (below header so header stays visible)
      drawer                  : 35
-     floating-action         : 50     (PDF floating translate button)
-     popover                 : 50     (Help/Usage popovers)
+     floating-action         : 50     (PDF floating translate button; never co-visible with popover)
+     popover                 : 50     (Help/Usage popovers; never co-visible with floating-action)
      cookie                  : 60     (cookie consent bar)
      toast                   : 100    (transient notifications)
-     guide-overlay           : 200    (onboarding tour; above everything)
+     guide-overlay           : 200    (onboarding tour; above app chrome)
        guide spotlight       : 201
        guide tooltip         : 202
+     skip-link               : 999    (focus-only skip link; must sit above all, incl. guide)
    ============================================================ */
 
 /* A11y: Visible focus indicator for keyboard navigation */
