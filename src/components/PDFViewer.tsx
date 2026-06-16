@@ -8,6 +8,9 @@ import type { PdfjsDocument, PdfjsViewport, PdfjsTextItem } from '@/lib/pdfLoade
 // Pretext-inspired: canvas measureText for precise char-level positioning
 // (pretext's measurement module isn't exported, so we inline the technique)
 
+// Min viewport-top clearance (px) to place the floating button above the selection (≈ button height + gap)
+const FLOATING_BTN_ABOVE_THRESHOLD = 56;
+
 export default memo(function PDFViewer() {
   // === Page-mode refs ===
   const canvasContainerRef = useRef<HTMLDivElement>(null);
@@ -929,10 +932,13 @@ export default memo(function PDFViewer() {
 
     if (text && text.length > 0 && anchor && contentContainer?.contains(anchor)) {
       setSelectedText(text);
+      // NOTE: this mouse handler and the selectionchange handler below are intentionally
+      // parallel, not merged: mouse uses e.clientY, selectionchange uses rangeRect, and the
+      // below-gap differs (10 vs 8) on purpose. Keep them distinct.
       const x = Math.min(Math.max(e.clientX - 35, 10), window.innerWidth - 90);
       const aboveY = e.clientY - 8;
       const belowY = e.clientY + 10;
-      const useAbove = e.clientY > 56;
+      const useAbove = e.clientY > FLOATING_BTN_ABOVE_THRESHOLD;
       const y = useAbove ? aboveY : belowY;
       setFloatingBtn({ x, y, useAbove });
       const scrollContainer = viewerMode === 'scroll'
@@ -997,7 +1003,7 @@ export default memo(function PDFViewer() {
           const x = Math.min(Math.max(rangeRect.left, 10), window.innerWidth - 90);
           const aboveY = rangeRect.top - 8;   // button's bottom edge sits here
           const belowY = rangeRect.bottom + 8;
-          const useAbove = rangeRect.top > 56; // enough room above OS toolbar?
+          const useAbove = rangeRect.top > FLOATING_BTN_ABOVE_THRESHOLD; // enough room above OS toolbar?
           const y = useAbove ? aboveY : belowY;
           setFloatingBtn({ x, y, useAbove });
           const scrollContainer = viewerMode === 'scroll'
