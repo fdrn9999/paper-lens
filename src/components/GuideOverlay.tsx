@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import useStore from '@/store/useStore';
 
 const GUIDE_STEPS = [
@@ -126,6 +126,7 @@ export default function GuideOverlay() {
 
   const [spotlight, setSpotlight] = useState<SpotlightRect | null>(null);
   const [tooltipPos, setTooltipPos] = useState({ top: 0, left: 0 });
+  const dialogRef = useRef<HTMLDivElement | null>(null);
 
   const updatePosition = useCallback(() => {
     const step = GUIDE_STEPS[tutorialStep];
@@ -179,6 +180,47 @@ export default function GuideOverlay() {
     return () => window.removeEventListener('resize', updatePosition);
   }, [isGuideActive, tutorialStep, updatePosition]);
 
+  // Escape to close + focus trap (keep Tab focus inside the dialog).
+  useEffect(() => {
+    if (!isGuideActive) return;
+    const dialog = dialogRef.current;
+    dialog?.focus({ preventScroll: true });
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        skipGuide();
+        return;
+      }
+      if (e.key !== 'Tab' || !dialog) return;
+      const focusable = Array.from(
+        dialog.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        )
+      );
+      if (focusable.length === 0) {
+        e.preventDefault();
+        dialog.focus({ preventScroll: true });
+        return;
+      }
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const active = document.activeElement;
+      if (e.shiftKey) {
+        if (active === first || active === dialog) {
+          e.preventDefault();
+          last.focus();
+        }
+      } else if (active === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isGuideActive, tutorialStep, skipGuide]);
+
   if (!isGuideActive) return null;
 
   const step = GUIDE_STEPS[tutorialStep];
@@ -188,12 +230,19 @@ export default function GuideOverlay() {
   const isLast = tutorialStep === GUIDE_STEPS.length - 1;
 
   return (
-    <div className="fixed inset-0 z-[200]" role="dialog" aria-modal="true" aria-label="사용 가이드">
+    <div
+      ref={dialogRef}
+      tabIndex={-1}
+      className="fixed inset-0 z-[200] outline-none"
+      role="dialog"
+      aria-modal="true"
+      aria-label="사용 가이드"
+    >
       {/* Backdrop — only shown when there's no spotlight (welcome screen).
-          When spotlight is active, the boxShadow handles dimming to avoid double-opacity. */}
+          When spotlight is active, the boxShadow handles dimming to avoid double-opacity.
+          Clicking the backdrop intentionally does NOT close the tour; use the 건너뛰기 button. */}
       <div
         className={`absolute inset-0 transition-opacity ${spotlight ? '' : 'bg-black/60'}`}
-        onClick={skipGuide}
       />
 
       {/* Spotlight cutout — boxShadow creates the dim with a transparent hole */}
