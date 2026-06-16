@@ -12,6 +12,15 @@ const EXAMPLE_QUESTIONS = [
 
 const MAX_CHARS = 2000;
 
+async function copyToClipboard(text: string) {
+  try {
+    await navigator.clipboard.writeText(text);
+    window.dispatchEvent(new CustomEvent('paperlens-toast', { detail: { text: '복사되었습니다.', type: 'success' } }));
+  } catch {
+    window.dispatchEvent(new CustomEvent('paperlens-toast', { detail: { text: '복사에 실패했습니다.', type: 'error' } }));
+  }
+}
+
 /** Simple markdown-like formatting: bold, line breaks, bullet lists */
 function FormattedText({ text }: { text: string }) {
   const lines = text.split('\n');
@@ -98,6 +107,11 @@ export default memo(function ChatPanel() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const hasSummarizedRef = useRef(false);
+
+  // Clear the confirm-clear timer on unmount
+  useEffect(() => () => {
+    if (confirmClearTimerRef.current) clearTimeout(confirmClearTimerRef.current);
+  }, []);
 
   // Reset summarize flag when PDF changes
   useEffect(() => {
@@ -247,6 +261,18 @@ export default memo(function ChatPanel() {
                 ) : chatSummary ? (
                   <div className="text-gray-700">
                     <FormattedText text={chatSummary} />
+                    <div className="flex justify-end mt-1">
+                      <button
+                        onClick={() => copyToClipboard(chatSummary)}
+                        className="min-w-[36px] min-h-[36px] flex items-center justify-center rounded hover:bg-purple-100 text-purple-400 hover:text-purple-600 transition-colors"
+                        title="요약 복사"
+                        aria-label="논문 요약 복사"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                      </button>
+                    </div>
                   </div>
                 ) : null}
               </div>
@@ -273,10 +299,7 @@ export default memo(function ChatPanel() {
                 <div className="chat-message">
                   <FormattedText text={msg.content} />
                   <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(msg.content);
-                      window.dispatchEvent(new CustomEvent('paperlens-toast', { detail: { text: '복사되었습니다.', type: 'success' } }));
-                    }}
+                    onClick={() => copyToClipboard(msg.content)}
                     className="min-w-[36px] min-h-[36px] flex items-center justify-center rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
                     title="복사"
                     aria-label="메시지 복사"
