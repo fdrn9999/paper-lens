@@ -167,7 +167,7 @@ export default memo(function SearchBar() {
             className="px-3 sm:px-4 py-2 text-sm bg-blue-600 text-white rounded-lg
                        hover:bg-blue-700 active:bg-blue-800 transition-colors font-medium shrink-0 min-h-[44px]"
           >
-            추가
+            {searchTerms.length > 0 ? '추가' : '검색'}
           </button>
         )}
       </form>
