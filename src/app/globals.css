@@ -6,6 +6,22 @@
   box-sizing: border-box;
 }
 
+/* ============================================================
+   z-index scale (stacking order, low → high)
+   Use these tiers; do not invent new ad-hoc z-[NNN] values.
+     base / highlight        : 0–10   (in-flow content, text highlights)
+     header                  : 40
+     drawer-backdrop         : 30
+     drawer                  : 35
+     floating-action         : 50     (PDF floating translate button)
+     popover                 : 50     (Help/Usage popovers)
+     cookie                  : 60     (cookie consent bar)
+     toast                   : 100    (transient notifications)
+     guide-overlay           : 200    (onboarding tour; above everything)
+       guide spotlight       : 201
+       guide tooltip         : 202
+   ============================================================ */
+
 /* A11y: Visible focus indicator for keyboard navigation */
 :focus-visible {
   outline: 2px solid #2563eb;
@@ -196,4 +212,15 @@ input, textarea,
 
 .animate-slide-up {
   animation: slide-up 0.3s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
