@@ -166,7 +166,13 @@ function findNgramPages(ngram: string[], pageTokens: string[][]): number[] {
 /** Check if term appears as a whole word in text (word-boundary matching). */
 function containsWholeWord(text: string, term: string): boolean {
   const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const re = new RegExp(`\\b${escaped}\\b`, 'i');
+  // \b word boundaries only match around ASCII word chars (\w). For terms with
+  // non-ASCII letters (Korean, CJK, etc.) \b never matches between them, so fall
+  // back to a plain substring match.
+  const asciiWordOnly = /^[A-Za-z0-9_]+$/.test(term);
+  const re = asciiWordOnly
+    ? new RegExp(`\\b${escaped}\\b`, 'i')
+    : new RegExp(escaped, 'i');
   return re.test(text);
 }
 
