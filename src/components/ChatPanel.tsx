@@ -380,6 +380,8 @@ export default memo(function ChatPanel() {
               style={{ maxHeight: 120 }}
             />
             <span
+              aria-live="polite"
+              aria-atomic="true"
               className={`absolute right-2 bottom-1 text-[10px] tabular-nums ${
                 input.length >= MAX_CHARS
                   ? 'text-red-500'
