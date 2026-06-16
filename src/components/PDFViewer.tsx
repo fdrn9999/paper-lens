@@ -51,14 +51,26 @@ export default memo(function PDFViewer() {
   const [floatingBtn, setFloatingBtn] = useState<{ x: number; y: number; useAbove: boolean } | null>(null);
   const scrollStartRef = useRef<number | null>(null);
 
+  const [showDragHint, setShowDragHint] = useState(false);
+  useEffect(() => {
+    if (typeof window !== 'undefined' && !localStorage.getItem('paperlens-drag-hint-dismissed')) {
+      setShowDragHint(true);
+    }
+  }, []);
+  const dismissDragHint = useCallback(() => {
+    setShowDragHint(false);
+    if (typeof window !== 'undefined') localStorage.setItem('paperlens-drag-hint-dismissed', '1');
+  }, []);
+
   const handleTranslateClick = useCallback(() => {
     if (selectedText) {
       translate(selectedText);
       setFloatingBtn(null);
+      dismissDragHint();
       // Delay removeAllRanges so translate's state update lands first
       setTimeout(() => window.getSelection()?.removeAllRanges(), 50);
     }
-  }, [selectedText, translate]);
+  }, [selectedText, translate, dismissDragHint]);
 
   // === Scroll-mode state & refs ===
   const [pageDims, setPageDims] = useState<{ w: number; h: number }[]>([]);
@@ -1153,6 +1165,12 @@ export default memo(function PDFViewer() {
           </div>
         ))}
         {floatingBtnEl}
+        {showDragHint && (
+          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 rounded-full bg-purple-600/90 px-3 py-1.5 text-xs text-white shadow-md">
+            <span>💡 텍스트를 드래그하면 바로 번역돼요</span>
+            <button onClick={dismissDragHint} aria-label="힌트 닫기" className="ml-1 opacity-80 hover:opacity-100">✕</button>
+          </div>
+        )}
 
       </div>
     );
@@ -1167,6 +1185,12 @@ export default memo(function PDFViewer() {
     >
       <div ref={canvasContainerRef} />
       {floatingBtnEl}
+      {showDragHint && (
+        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 rounded-full bg-purple-600/90 px-3 py-1.5 text-xs text-white shadow-md">
+          <span>💡 텍스트를 드래그하면 바로 번역돼요</span>
+          <button onClick={dismissDragHint} aria-label="힌트 닫기" className="ml-1 opacity-80 hover:opacity-100">✕</button>
+        </div>
+      )}
       {renderingCanvas && (
         <div className="absolute inset-0 flex items-center justify-center bg-white/50 z-20">
           <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-lg shadow">
