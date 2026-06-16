@@ -91,7 +91,9 @@ export default memo(function PageNavigator() {
           className="px-2 py-1 min-w-[44px] min-h-[44px] flex items-center justify-center rounded hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
           aria-label="이전 페이지"
         >
-          ◀
+          <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+            <path fillRule="evenodd" d="M12.79 5.23a.75.75 0 0 1 0 1.06L9.06 10l3.73 3.71a.75.75 0 1 1-1.06 1.06l-4.25-4.24a.75.75 0 0 1 0-1.06l4.25-4.24a.75.75 0 0 1 1.07 0Z" clipRule="evenodd" />
+          </svg>
         </button>
         <div className="flex items-center gap-1">
           <input
@@ -114,14 +116,17 @@ export default memo(function PageNavigator() {
           className="px-2 py-1 min-w-[44px] min-h-[44px] flex items-center justify-center rounded hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
           aria-label="다음 페이지"
         >
-          ▶
+          <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+            <path fillRule="evenodd" d="M7.21 14.77a.75.75 0 0 1 0-1.06L10.94 10 7.21 6.29a.75.75 0 1 1 1.06-1.06l4.25 4.24a.75.75 0 0 1 0 1.06l-4.25 4.24a.75.75 0 0 1-1.06 0Z" clipRule="evenodd" />
+          </svg>
         </button>
       </div>
 
       {isExtracting && totalPages > 0 && (
-        <div className="hidden sm:flex items-center gap-1.5 text-xs text-amber-600">
+        <div className="flex items-center gap-1.5 text-xs text-amber-600">
           <div className="animate-spin h-3 w-3 border-[1.5px] border-amber-500 border-t-transparent rounded-full" />
-          <span>텍스트 추출 중 ({pageTextContents.length}/{totalPages})</span>
+          <span className="hidden sm:inline">텍스트 추출 중 ({pageTextContents.length}/{totalPages})</span>
+          <span className="sm:hidden">{pageTextContents.length}/{totalPages}</span>
         </div>
       )}
 
