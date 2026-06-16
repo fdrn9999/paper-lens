@@ -17,16 +17,30 @@ function getVirtualItemHeight(item: VirtualItem): number {
   return ITEM_HEIGHT;
 }
 
-/** Find keyword in context reliably, falling back to charStart/charEnd */
+/** Find keyword in context reliably, preferring the precomputed match position */
 function findMatchInContext(context: string, matchedToken: string, charStart: number, charEnd: number) {
-  // First try: find matchedToken directly in context (case-insensitive)
   const ctxLower = context.toLowerCase();
   const tokenLower = matchedToken.toLowerCase();
-  const idx = ctxLower.indexOf(tokenLower);
-  if (idx >= 0) {
-    return { start: idx, end: idx + matchedToken.length };
+  // First try: trust the precomputed charStart/charEnd if it actually points at the token
+  if (
+    charStart >= 0 && charEnd <= context.length && charStart < charEnd &&
+    ctxLower.slice(charStart, charEnd) === tokenLower
+  ) {
+    return { start: charStart, end: charEnd };
   }
-  // Second try: use charStart/charEnd if they are within bounds and produce non-empty text
+  // Second try: the occurrence nearest to charStart (avoids highlighting an unrelated earlier copy)
+  if (tokenLower) {
+    let best = -1;
+    let from = 0;
+    for (;;) {
+      const idx = ctxLower.indexOf(tokenLower, from);
+      if (idx < 0) break;
+      if (best < 0 || Math.abs(idx - charStart) < Math.abs(best - charStart)) best = idx;
+      from = idx + 1;
+    }
+    if (best >= 0) return { start: best, end: best + matchedToken.length };
+  }
+  // Third try: bounds-valid charStart/charEnd even if the slice didn't match exactly
   if (charStart >= 0 && charEnd <= context.length && charStart < charEnd) {
     return { start: charStart, end: charEnd };
   }
