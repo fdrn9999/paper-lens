@@ -45,7 +45,7 @@ export default memo(function PDFViewer() {
   const activeKeywords = useStore((s) => s.activeKeywords);
   const keywords = useStore((s) => s.keywords);
 
-  const [floatingBtn, setFloatingBtn] = useState<{ x: number; y: number } | null>(null);
+  const [floatingBtn, setFloatingBtn] = useState<{ x: number; y: number; useAbove: boolean } | null>(null);
   const scrollStartRef = useRef<number | null>(null);
 
   const handleTranslateClick = useCallback(() => {
@@ -930,11 +930,11 @@ export default memo(function PDFViewer() {
     if (text && text.length > 0 && anchor && contentContainer?.contains(anchor)) {
       setSelectedText(text);
       const x = Math.min(Math.max(e.clientX - 35, 10), window.innerWidth - 90);
-      // Below if room, above if near bottom
+      const aboveY = e.clientY - 8;
       const belowY = e.clientY + 10;
-      const aboveY = e.clientY - 50;
-      const y = belowY < window.innerHeight - 60 ? belowY : Math.max(10, aboveY);
-      setFloatingBtn({ x, y });
+      const useAbove = e.clientY > 56;
+      const y = useAbove ? aboveY : belowY;
+      setFloatingBtn({ x, y, useAbove });
       const scrollContainer = viewerMode === 'scroll'
         ? scrollContainerRef.current
         : contentContainer?.parentElement;
@@ -995,11 +995,11 @@ export default memo(function PDFViewer() {
           const range = sel.getRangeAt(0);
           const rangeRect = range.getBoundingClientRect();
           const x = Math.min(Math.max(rangeRect.left, 10), window.innerWidth - 90);
-          // Below if room, above if near bottom
+          const aboveY = rangeRect.top - 8;   // button's bottom edge sits here
           const belowY = rangeRect.bottom + 8;
-          const aboveY = rangeRect.top - 50;
-          const y = belowY < window.innerHeight - 60 ? belowY : Math.max(10, aboveY);
-          setFloatingBtn({ x, y });
+          const useAbove = rangeRect.top > 56; // enough room above OS toolbar?
+          const y = useAbove ? aboveY : belowY;
+          setFloatingBtn({ x, y, useAbove });
           const scrollContainer = viewerMode === 'scroll'
             ? scrollContainerRef.current
             : container.parentElement;
@@ -1099,7 +1099,7 @@ export default memo(function PDFViewer() {
   const floatingBtnEl = floatingBtn && selectedText && !showTranslation && (
     <div
       className="fixed z-50 animate-in fade-in"
-      style={{ left: `${floatingBtn.x}px`, top: `${floatingBtn.y}px` }}
+      style={{ left: `${floatingBtn.x}px`, top: `${floatingBtn.y}px`, transform: floatingBtn.useAbove ? 'translateY(-100%)' : undefined }}
     >
       <button
         onMouseDown={(e) => e.preventDefault()}
