@@ -781,7 +781,6 @@ const useStore = create<AppState>()(
           hasSeenTutorial,
           dailyUsage,
           viewerMode,
-          textExtractionFailed: false,
           keywords: null,
           allKeywords: {},
           activeKeywords: [],

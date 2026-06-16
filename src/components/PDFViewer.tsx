@@ -246,6 +246,7 @@ export default memo(function PDFViewer() {
         }
       } catch (err) {
         if (!cancelled) {
+          setIsExtracting(false);
           setTextExtractionFailed(true);
           window.dispatchEvent(new CustomEvent('paperlens-toast', {
             detail: { text: '이 PDF는 텍스트 추출이 어렵습니다. 검색·키워드 기능이 제한될 수 있어요.', type: 'error' },
