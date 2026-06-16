@@ -289,7 +289,7 @@ export default memo(function ChatPanel() {
             <div
               className={`max-w-[85%] rounded-xl px-3 py-2 ${
                 msg.role === 'user'
-                  ? 'bg-blue-500 text-white rounded-br-sm'
+                  ? 'bg-purple-500 text-white rounded-br-sm'
                   : 'bg-white border border-gray-200 text-gray-800 rounded-bl-sm shadow-sm'
               }`}
             >
@@ -352,7 +352,7 @@ export default memo(function ChatPanel() {
                   key={q}
                   onClick={() => handleExampleClick(q)}
                   disabled={isChatLoading || isExtracting}
-                  className="text-xs px-3 py-1.5 rounded-full border border-blue-200 text-blue-600 bg-blue-50 hover:bg-blue-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] sm:min-h-0"
+                  className="text-xs px-3 py-1.5 rounded-full border border-purple-200 text-purple-600 bg-purple-50 hover:bg-purple-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] sm:min-h-0"
                 >
                   {q}
                 </button>
@@ -376,19 +376,25 @@ export default memo(function ChatPanel() {
               disabled={isChatLoading || isExtracting}
               placeholder="논문에 대해 질문하세요..."
               rows={1}
-              className="w-full resize-none rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="w-full resize-none rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               style={{ maxHeight: 120 }}
             />
-            {input.length > 0 && (
-              <span className={`absolute right-2 bottom-1 text-[10px] tabular-nums ${input.length >= MAX_CHARS ? 'text-red-500' : 'text-gray-400'}`}>
-                {input.length}/{MAX_CHARS}
-              </span>
-            )}
+            <span
+              className={`absolute right-2 bottom-1 text-[10px] tabular-nums ${
+                input.length >= MAX_CHARS
+                  ? 'text-red-500'
+                  : input.length >= MAX_CHARS * 0.9
+                    ? 'text-amber-500'
+                    : 'text-gray-400'
+              }`}
+            >
+              {input.length}/{MAX_CHARS}
+            </span>
           </div>
           <button
             onClick={handleSend}
             disabled={!input.trim() || isChatLoading || isExtracting}
-            className="shrink-0 p-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+            className="shrink-0 p-2 rounded-lg bg-purple-500 text-white hover:bg-purple-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
             aria-label="전송"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
