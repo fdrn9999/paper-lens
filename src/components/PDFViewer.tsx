@@ -113,6 +113,16 @@ export default memo(function PDFViewer() {
 
   const [floatingBtn, setFloatingBtn] = useState<{ x: number; y: number; useAbove: boolean } | null>(null);
   const scrollStartRef = useRef<number | null>(null);
+  const [selLevel, setSelLevel] = useState<SelectionLevel | null>(null);
+  const selectionRef = useRef<{
+    wrapper: HTMLElement;
+    textLayer: HTMLElement;
+    range: SelectionRange;
+    anchorItem: number;
+    anchorChar: number;
+    level: SelectionLevel;
+    fromTap: boolean;
+  } | null>(null);
 
   const [showDragHint, setShowDragHint] = useState(false);
   useEffect(() => {
@@ -698,6 +708,75 @@ export default memo(function PDFViewer() {
     div.style.cssText = `left:${r.left}px;top:${r.top}px;width:${Math.max(r.width, 4)}px;height:${r.height}px;background-color:${color}40;border-bottom:2px solid ${color};`;
     layer.appendChild(div);
   }
+
+  /** Get or create the per-wrapper selection overlay layer. */
+  function ensureSelectionLayer(wrapper: HTMLElement): HTMLElement {
+    let layer = wrapper.querySelector('.pdf-selection-layer') as HTMLElement | null;
+    if (!layer) {
+      layer = document.createElement('div');
+      layer.className = 'pdf-selection-layer';
+      wrapper.appendChild(layer);
+    }
+    return layer;
+  }
+
+  /** Draw one selection rect on a span (reuses computeHighlightRect). */
+  function createSelectionMark(
+    span: HTMLElement, wrapper: HTMLElement, charStart: number, charEnd: number, layer: HTMLElement,
+  ) {
+    const r = computeHighlightRect(span, wrapper, charStart, charEnd);
+    const div = document.createElement('div');
+    div.className = 'pdf-selection-mark';
+    div.style.cssText = `left:${r.left}px;top:${r.top}px;width:${Math.max(r.width, 2)}px;height:${r.height}px;`;
+    layer.appendChild(div);
+  }
+
+  /** Remove all selection marks across every rendered page. */
+  const clearSelectionOverlay = useCallback(() => {
+    document.querySelectorAll('.pdf-selection-layer').forEach((l) => {
+      while (l.firstChild) l.removeChild(l.firstChild);
+    });
+  }, []);
+
+  /** Render a selection range into the wrapper's overlay. */
+  const renderSelectionRange = useCallback((
+    wrapper: HTMLElement, textLayer: HTMLElement, range: SelectionRange,
+  ) => {
+    const layer = ensureSelectionLayer(wrapper);
+    while (layer.firstChild) layer.removeChild(layer.firstChild);
+    const spans = textLayer.querySelectorAll('span[data-item-index]');
+    spans.forEach((el) => {
+      const span = el as HTMLElement;
+      const idx = Number(span.dataset.itemIndex);
+      if (idx < range.startItem || idx > range.endItem) return;
+      const text = span.textContent || '';
+      const cs = idx === range.startItem ? range.startChar : 0;
+      const ce = idx === range.endItem ? range.endChar : text.length;
+      if (ce > cs) createSelectionMark(span, wrapper, cs, ce, layer);
+    });
+  }, []);
+
+  /** Position the floating [번역][확장] row above (or below) the current selection. */
+  const positionRowForSelection = useCallback((wrapper: HTMLElement) => {
+    const layer = wrapper.querySelector('.pdf-selection-layer') as HTMLElement | null;
+    const marks = layer ? (Array.from(layer.children) as HTMLElement[]) : [];
+    if (marks.length === 0) { setFloatingBtn(null); return; }
+    let top = Infinity, bottom = -Infinity, left = Infinity;
+    for (const m of marks) {
+      const rc = m.getBoundingClientRect();
+      top = Math.min(top, rc.top);
+      bottom = Math.max(bottom, rc.bottom);
+      left = Math.min(left, rc.left);
+    }
+    const x = Math.min(Math.max(left, 10), window.innerWidth - 120);
+    const useAbove = top > FLOATING_BTN_ABOVE_THRESHOLD;
+    const y = useAbove ? top - 8 : bottom + 8;
+    setFloatingBtn({ x, y, useAbove });
+    const scrollContainer = viewerMode === 'scroll'
+      ? scrollContainerRef.current
+      : canvasContainerRef.current?.parentElement;
+    if (scrollContainer) scrollStartRef.current = scrollContainer.scrollTop;
+  }, [viewerMode]);
 
   /**
    * Find matchedToken in span text at render time (keyword-style approach).
