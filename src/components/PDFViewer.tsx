@@ -845,6 +845,76 @@ export default memo(function PDFViewer() {
     );
   }, [selectAtAnchor]);
 
+  // ===== Mobile tap-to-select (touch only) =====
+  useEffect(() => {
+    const container = viewerMode === 'scroll'
+      ? scrollContainerRef.current
+      : canvasContainerRef.current?.parentElement;
+    if (!container || !pdfDoc) return;
+
+    const TAP_MOVE = 10;   // px before a touch counts as a drag/scroll
+    const TAP_MS = 350;    // max duration for a tap
+    const LP_MS = 250;     // hold before a drag becomes a selection-extend
+
+    let startX = 0, startY = 0, startTime = 0;
+    let moved = false, longPress = false;
+    let lpTimer: ReturnType<typeof setTimeout> | null = null;
+    let anchor: TapAnchor | null = null;
+
+    const wrapperOf = (textLayer: HTMLElement): HTMLElement =>
+      (viewerMode === 'scroll'
+        ? textLayer.closest('[data-page]')
+        : textLayer.parentElement) as HTMLElement;
+
+    const onStart = (e: TouchEvent) => {
+      if (e.touches.length !== 1) { if (lpTimer) clearTimeout(lpTimer); longPress = false; anchor = null; return; }
+      const t = e.touches[0];
+      startX = t.clientX; startY = t.clientY; startTime = Date.now();
+      moved = false; longPress = false;
+      const resolved = resolveTouchPoint(startX, startY);
+      anchor = resolved
+        ? { itemIndex: resolved.itemIndex, localChar: resolved.localChar, textLayer: resolved.textLayer, wrapper: wrapperOf(resolved.textLayer) }
+        : null;
+      if (lpTimer) clearTimeout(lpTimer);
+      lpTimer = setTimeout(() => { if (!moved && anchor) longPress = true; }, LP_MS);
+    };
+
+    const onMove = (e: TouchEvent) => {
+      if (e.touches.length !== 1) return;
+      const t = e.touches[0];
+      if (Math.abs(t.clientX - startX) > TAP_MOVE || Math.abs(t.clientY - startY) > TAP_MOVE) moved = true;
+      if (longPress && anchor) {
+        e.preventDefault(); // stop scrolling while extending selection
+        const cur = resolveTouchPoint(t.clientX, t.clientY);
+        if (cur && cur.textLayer === anchor.textLayer) {
+          applyDragSelection(anchor, { itemIndex: cur.itemIndex, localChar: cur.localChar });
+        }
+      }
+    };
+
+    const onEnd = (e: TouchEvent) => {
+      if (lpTimer) { clearTimeout(lpTimer); lpTimer = null; }
+      if (longPress) { longPress = false; return; } // drag-extend already applied
+      const dt = Date.now() - startTime;
+      if (!moved && dt <= TAP_MS) {
+        const target = e.target as HTMLElement;
+        if (target.closest('[data-sel-control]')) return; // tapping our own buttons
+        if (anchor) selectAtAnchor(anchor, 'word');
+        else dismissSelection();
+      }
+    };
+
+    container.addEventListener('touchstart', onStart, { passive: true });
+    container.addEventListener('touchmove', onMove, { passive: false });
+    container.addEventListener('touchend', onEnd, { passive: true });
+    return () => {
+      if (lpTimer) clearTimeout(lpTimer);
+      container.removeEventListener('touchstart', onStart);
+      container.removeEventListener('touchmove', onMove);
+      container.removeEventListener('touchend', onEnd);
+    };
+  }, [pdfDoc, viewerMode, selectAtAnchor, applyDragSelection, dismissSelection]);
+
   /**
    * Find matchedToken in span text at render time (keyword-style approach).
    * Returns charStart/charEnd within the span, or null if not found.
