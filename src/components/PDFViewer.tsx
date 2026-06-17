@@ -241,6 +241,12 @@ export default memo(function PDFViewer() {
   useEffect(() => {
     scaleRef.current = scale;
     setFloatingBtn(null);
+    // Inlined clear (clearSelectionOverlay is declared later → TDZ if referenced here).
+    document.querySelectorAll('.pdf-selection-layer').forEach((l) => {
+      while (l.firstChild) l.removeChild(l.firstChild);
+    });
+    selectionRef.current = null;
+    setSelLevel(null);
   }, [scale]);
 
   useEffect(() => {
@@ -1339,14 +1345,23 @@ export default memo(function PDFViewer() {
           setFloatingBtn(null);
           scrollStartRef.current = null;
         }
+        // Custom (touch) selection has no window range; dismiss it once scrolled far.
+        if (selectionRef.current) {
+          clearSelectionOverlay();
+          selectionRef.current = null;
+          setSelLevel(null);
+          setFloatingBtn(null);
+          scrollStartRef.current = null;
+        }
       } else {
         setFloatingBtn(null);
         scrollStartRef.current = null;
+        if (selectionRef.current) { clearSelectionOverlay(); selectionRef.current = null; setSelLevel(null); }
       }
     };
     scrollContainer.addEventListener('scroll', handleScroll, { passive: true });
     return () => scrollContainer.removeEventListener('scroll', handleScroll);
-  }, [pdfDoc, viewerMode]);
+  }, [pdfDoc, viewerMode, clearSelectionOverlay]);
 
   // ===================================================================
   // ===== RENDER =====
@@ -1433,7 +1448,7 @@ export default memo(function PDFViewer() {
   // Pinned to the non-scrolling viewer frame so it stays visible while the PDF scrolls.
   const dragHintEl = showDragHint && (
     <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 rounded-full bg-purple-600/90 px-3 py-1.5 text-xs text-white shadow-md">
-      <span>💡 텍스트를 드래그하면 바로 번역돼요</span>
+      <span>💡 단어를 탭하면 바로 번역돼요</span>
       <button onClick={dismissDragHint} aria-label="힌트 닫기" className="ml-1 opacity-80 hover:opacity-100">✕</button>
     </div>
   );
