@@ -139,6 +139,13 @@ export default memo(function PDFViewer() {
     if (selectedText) {
       translate(selectedText);
       setFloatingBtn(null);
+      // Clear the custom selection overlay. Inlined (not via clearSelectionOverlay)
+      // because that helper is declared later in the component → TDZ if referenced here.
+      document.querySelectorAll('.pdf-selection-layer').forEach((l) => {
+        while (l.firstChild) l.removeChild(l.firstChild);
+      });
+      selectionRef.current = null;
+      setSelLevel(null);
       dismissDragHint();
       // Delay removeAllRanges so translate's state update lands first
       setTimeout(() => window.getSelection()?.removeAllRanges(), 50);
@@ -777,6 +784,66 @@ export default memo(function PDFViewer() {
       : canvasContainerRef.current?.parentElement;
     if (scrollContainer) scrollStartRef.current = scrollContainer.scrollTop;
   }, [viewerMode]);
+
+  type TapAnchor = { itemIndex: number; localChar: number; textLayer: HTMLElement; wrapper: HTMLElement };
+
+  /** Tap/expand: select word|sentence|paragraph around the anchor. */
+  const selectAtAnchor = useCallback((anchor: TapAnchor, level: SelectionLevel) => {
+    const items = buildSelItems(anchor.textLayer);
+    const range = expandSelection(items, anchor.itemIndex, anchor.localChar, level);
+    if (!range) { return; }
+    renderSelectionRange(anchor.wrapper, anchor.textLayer, range);
+    setSelectedText(buildSelectionText(items, range));
+    selectionRef.current = {
+      wrapper: anchor.wrapper, textLayer: anchor.textLayer, range,
+      anchorItem: anchor.itemIndex, anchorChar: anchor.localChar, level, fromTap: true,
+    };
+    setSelLevel(level);
+    positionRowForSelection(anchor.wrapper);
+    dismissDragHint();
+  }, [renderSelectionRange, positionRowForSelection, setSelectedText, dismissDragHint]);
+
+  /** Drag-extend: select from anchor word to the word currently under the finger. */
+  const applyDragSelection = useCallback((
+    anchor: TapAnchor, cur: { itemIndex: number; localChar: number },
+  ) => {
+    const items = buildSelItems(anchor.textLayer);
+    const a = { item: anchor.itemIndex, char: anchor.localChar };
+    const b = { item: cur.itemIndex, char: cur.localChar };
+    const forward = a.item < b.item || (a.item === b.item && a.char <= b.char);
+    const [s, e] = forward ? [a, b] : [b, a];
+    const range: SelectionRange = { startItem: s.item, startChar: s.char, endItem: e.item, endChar: e.char + 1 };
+    renderSelectionRange(anchor.wrapper, anchor.textLayer, range);
+    setSelectedText(buildSelectionText(items, range));
+    selectionRef.current = {
+      wrapper: anchor.wrapper, textLayer: anchor.textLayer, range,
+      anchorItem: anchor.itemIndex, anchorChar: anchor.localChar, level: 'word', fromTap: false,
+    };
+    setSelLevel(null); // hide 확장 for drag selections
+    positionRowForSelection(anchor.wrapper);
+    dismissDragHint();
+  }, [renderSelectionRange, positionRowForSelection, setSelectedText, dismissDragHint]);
+
+  /** Clear the selection and its overlay. */
+  const dismissSelection = useCallback(() => {
+    clearSelectionOverlay();
+    selectionRef.current = null;
+    setSelLevel(null);
+    setFloatingBtn(null);
+    scrollStartRef.current = null;
+    if (!useStore.getState().showTranslation) setSelectedText('');
+  }, [clearSelectionOverlay, setSelectedText]);
+
+  /** 확장 button: grow word -> sentence -> paragraph from the original tap anchor. */
+  const handleExpand = useCallback(() => {
+    const cur = selectionRef.current;
+    if (!cur || !cur.fromTap) return;
+    const lvl = nextLevel(cur.level);
+    selectAtAnchor(
+      { itemIndex: cur.anchorItem, localChar: cur.anchorChar, textLayer: cur.textLayer, wrapper: cur.wrapper },
+      lvl,
+    );
+  }, [selectAtAnchor]);
 
   /**
    * Find matchedToken in span text at render time (keyword-style approach).
