@@ -5,11 +5,74 @@ import useStore from '@/store/useStore';
 import type { PageTextContent, ExtractedTextItem } from '@/lib/types';
 import { loadPdfjs } from '@/lib/pdfLoader';
 import type { PdfjsDocument, PdfjsViewport, PdfjsTextItem } from '@/lib/pdfLoader';
+import {
+  expandSelection, buildSelectionText, nextLevel,
+  type SelItem, type SelectionRange, type SelectionLevel,
+} from '@/lib/textSelection';
 // Pretext-inspired: canvas measureText for precise char-level positioning
 // (pretext's measurement module isn't exported, so we inline the technique)
 
 // Min viewport-top clearance (px) to place the floating button above the selection (≈ button height + gap)
 const FLOATING_BTN_ABOVE_THRESHOLD = 56;
+
+/** Read a rendered text layer's spans into SelItem[] (DOM order = reading order). */
+function buildSelItems(textLayer: HTMLElement): SelItem[] {
+  const spans = textLayer.querySelectorAll('span[data-item-index]');
+  const items: SelItem[] = [];
+  spans.forEach((el) => {
+    const span = el as HTMLElement;
+    items.push({
+      itemIndex: Number(span.dataset.itemIndex),
+      text: span.textContent || '',
+      y: parseFloat(span.style.top) || 0,
+      height: parseFloat(span.style.height) || 12,
+    });
+  });
+  return items;
+}
+
+/** Estimate a char offset within a span from a client x-coordinate (fallback only). */
+function estimateCharByX(span: HTMLElement, clientX: number): number {
+  const text = span.textContent || '';
+  if (!text) return 0;
+  const rect = span.getBoundingClientRect();
+  const ratio = rect.width > 0 ? (clientX - rect.left) / rect.width : 0;
+  return Math.max(0, Math.min(text.length - 1, Math.round(ratio * text.length)));
+}
+
+/** Resolve a viewport point to a text-layer span + char offset. */
+function resolveTouchPoint(
+  x: number, y: number,
+): { textLayer: HTMLElement; itemIndex: number; localChar: number } | null {
+  type CaretDoc = Document & {
+    caretRangeFromPoint?: (x: number, y: number) => Range | null;
+    caretPositionFromPoint?: (x: number, y: number) => { offsetNode: Node; offset: number } | null;
+  };
+  const doc = document as CaretDoc;
+  let node: Node | null = null;
+  let offset = 0;
+  let haveCaret = false;
+  if (doc.caretRangeFromPoint) {
+    const r = doc.caretRangeFromPoint(x, y);
+    if (r) { node = r.startContainer; offset = r.startOffset; haveCaret = true; }
+  } else if (doc.caretPositionFromPoint) {
+    const p = doc.caretPositionFromPoint(x, y);
+    if (p) { node = p.offsetNode; offset = p.offset; haveCaret = true; }
+  }
+
+  const baseEl: HTMLElement | null = node
+    ? (node.nodeType === Node.TEXT_NODE ? node.parentElement : (node as HTMLElement))
+    : (document.elementFromPoint(x, y) as HTMLElement | null);
+  const span = baseEl?.closest('span[data-item-index]') as HTMLElement | null;
+  const textLayer = span?.closest('.textLayer') as HTMLElement | null;
+  if (!span || !textLayer) return null;
+
+  // Use the caret offset only when it actually points inside this span's text node.
+  const caretInSpan =
+    haveCaret && node?.nodeType === Node.TEXT_NODE && node.parentElement === span;
+  const localChar = caretInSpan ? offset : estimateCharByX(span, x);
+  return { textLayer, itemIndex: Number(span.dataset.itemIndex), localChar };
+}
 
 export default memo(function PDFViewer() {
   // === Page-mode refs ===
