@@ -1392,13 +1392,15 @@ export default memo(function PDFViewer() {
     );
   }
 
-  // Floating translate button near selection (works on all devices)
+  // Floating translate (+ expand) row near selection (works on all devices)
   const floatingBtnEl = floatingBtn && selectedText && !showTranslation && (
     <div
-      className="fixed z-50 animate-in fade-in"
+      data-sel-control
+      className="fixed z-50 animate-in fade-in flex items-center gap-1.5"
       style={{ left: `${floatingBtn.x}px`, top: `${floatingBtn.y}px`, transform: floatingBtn.useAbove ? 'translateY(-100%)' : undefined }}
     >
       <button
+        data-sel-control
         onMouseDown={(e) => e.preventDefault()}
         onClick={handleTranslateClick}
         aria-label="선택한 텍스트 번역"
@@ -1410,6 +1412,21 @@ export default memo(function PDFViewer() {
         </svg>
         번역
       </button>
+      {selLevel && selLevel !== 'paragraph' && (
+        <button
+          data-sel-control
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={handleExpand}
+          aria-label="선택 범위 확장"
+          className="px-3 py-2.5 bg-white text-blue-700 text-sm rounded-lg shadow-lg border border-blue-200
+                     hover:bg-blue-50 active:bg-blue-100 transition-colors flex items-center gap-1"
+        >
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+          </svg>
+          확장
+        </button>
+      )}
     </div>
   );
 
