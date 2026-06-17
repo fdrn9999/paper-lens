@@ -138,6 +138,32 @@ input, textarea,
   animation: highlight-pulse 1.5s ease-in-out;
 }
 
+/* Custom tap-selection overlay (mobile) */
+.pdf-selection-layer {
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 1; /* above canvas, below the text layer (z-index 2) */
+}
+
+.pdf-selection-mark {
+  position: absolute;
+  background: rgba(0, 100, 200, 0.3);
+  border-radius: 1px;
+}
+
+/* On touch devices, suppress native selection so our custom engine drives it
+   (no OS selection toolbar / handles). Desktop mouse selection is unaffected. */
+@media (pointer: coarse) {
+  .textLayer {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+}
+
 @keyframes highlight-pulse {
   0% { box-shadow: 0 0 0 0 rgba(255, 100, 0, 0.6); }
   50% { box-shadow: 0 0 12px 4px rgba(255, 100, 0, 0.4); }
