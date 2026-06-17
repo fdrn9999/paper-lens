@@ -673,29 +673,31 @@ Immediately after `positionRowForSelection` (from Task 4) add:
 
 - [ ] **Step 2: Clear the overlay when a translation starts**
 
-In `handleTranslateClick` (lines 65–73), add overlay cleanup. Replace the existing body:
+In `handleTranslateClick` (near line 65, well ABOVE the overlay helpers), add overlay cleanup. **TDZ note:** `handleTranslateClick` is declared *before* `clearSelectionOverlay` in source order, so it MUST NOT reference `clearSelectionOverlay` (the dep array is evaluated eagerly at render → ReferenceError). Inline the DOM clear instead. `selectionRef`/`setSelLevel`/`setFloatingBtn` are declared earlier (right after `scrollStartRef`), so they ARE available. Replace the existing body:
 
 ```ts
   const handleTranslateClick = useCallback(() => {
     if (selectedText) {
       translate(selectedText);
       setFloatingBtn(null);
-      clearSelectionOverlay();
+      // Clear the custom selection overlay. Inlined (not via clearSelectionOverlay)
+      // because that helper is declared later in the component → TDZ if referenced here.
+      document.querySelectorAll('.pdf-selection-layer').forEach((l) => {
+        while (l.firstChild) l.removeChild(l.firstChild);
+      });
       selectionRef.current = null;
       setSelLevel(null);
       dismissDragHint();
       // Delay removeAllRanges so translate's state update lands first
       setTimeout(() => window.getSelection()?.removeAllRanges(), 50);
     }
-  }, [selectedText, translate, dismissDragHint, clearSelectionOverlay]);
+  }, [selectedText, translate, dismissDragHint]);
 ```
-
-(Note: `clearSelectionOverlay` is defined in Task 4, which is above `handleTranslateClick` in source order only if you keep Task 4's helpers below this. Since `handleTranslateClick` is at line 65 and the helpers are at ~640, move the four overlay helpers `ensureSelectionLayer`/`createSelectionMark`/`clearSelectionOverlay`/`renderSelectionRange`/`positionRowForSelection` is fine — `useCallback` refs are hoisted within the component closure at call time. No reordering needed; React function components evaluate top-to-bottom but `handleTranslateClick`'s callback only *runs* on click, after all are defined. The dependency `clearSelectionOverlay` is referenced lazily.)
 
 - [ ] **Step 3: Verify it compiles**
 
-Run: `npm run lint`
-Expected: PASS.
+Run: `npx tsc --noEmit`
+Expected: PASS. (Do NOT use `npm run lint` — the repo has no eslintrc and it prompts interactively.)
 
 - [ ] **Step 4: Commit**
 
@@ -711,11 +713,13 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 ## Task 6: Touch gesture detection effect
 
 **Files:**
-- Modify: `src/components/PDFViewer.tsx` (add a new effect after the existing pinch-zoom effect, which ends at line 229)
+- Modify: `src/components/PDFViewer.tsx` (add a new effect immediately AFTER the Task 5 callbacks)
+
+**TDZ note:** This effect's dependency array references `selectAtAnchor`, `applyDragSelection`, and `dismissSelection` (defined in Task 5). The deps array is evaluated eagerly when the `useEffect` line runs, so the effect MUST be placed AFTER those callbacks — do NOT place it up by the pinch-zoom effect, or those consts will be in the temporal dead zone (ReferenceError at render). Effect position has no other functional impact (effects run post-render regardless).
 
 - [ ] **Step 1: Add the tap / long-press-drag gesture effect**
 
-After the pinch-zoom effect's closing `}, [pdfDoc, setScale, viewerMode]);` (line 229) add:
+Immediately AFTER the `handleExpand` callback (the last thing added in Task 5) add:
 
 ```ts
   // ===== Mobile tap-to-select (touch only) =====
@@ -886,16 +890,19 @@ The scale effect at lines 160–164 currently is:
   }, [scale]);
 ```
 
-Replace it with (clears the now-stale overlay; page/scroll re-render rebuilds layers):
+Replace it with (clears the now-stale overlay; page/scroll re-render rebuilds layers). **TDZ note:** this effect sits ABOVE the `clearSelectionOverlay` declaration, so inline the DOM clear here rather than referencing that helper (it would be in the temporal dead zone). `selectionRef`/`setSelLevel`/`setFloatingBtn` are declared earlier and are safe:
 
 ```ts
   useEffect(() => {
     scaleRef.current = scale;
     setFloatingBtn(null);
-    clearSelectionOverlay();
+    // Inlined clear (clearSelectionOverlay is declared later → TDZ if referenced here).
+    document.querySelectorAll('.pdf-selection-layer').forEach((l) => {
+      while (l.firstChild) l.removeChild(l.firstChild);
+    });
     selectionRef.current = null;
     setSelLevel(null);
-  }, [scale, clearSelectionOverlay]);
+  }, [scale]);
 ```
 
 - [ ] **Step 2: Clear the selection when it scrolls out of view**
