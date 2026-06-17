@@ -1346,22 +1346,17 @@ export default memo(function PDFViewer() {
           scrollStartRef.current = null;
         }
         // Custom (touch) selection has no window range; dismiss it once scrolled far.
-        if (selectionRef.current) {
-          clearSelectionOverlay();
-          selectionRef.current = null;
-          setSelLevel(null);
-          setFloatingBtn(null);
-          scrollStartRef.current = null;
-        }
+        // dismissSelection also clears selectedText (guarded by showTranslation).
+        if (selectionRef.current) dismissSelection();
       } else {
         setFloatingBtn(null);
         scrollStartRef.current = null;
-        if (selectionRef.current) { clearSelectionOverlay(); selectionRef.current = null; setSelLevel(null); }
+        if (selectionRef.current) dismissSelection();
       }
     };
     scrollContainer.addEventListener('scroll', handleScroll, { passive: true });
     return () => scrollContainer.removeEventListener('scroll', handleScroll);
-  }, [pdfDoc, viewerMode, clearSelectionOverlay]);
+  }, [pdfDoc, viewerMode, dismissSelection]);
 
   // ===================================================================
   // ===== RENDER =====
