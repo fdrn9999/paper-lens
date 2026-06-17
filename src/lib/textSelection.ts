@@ -72,7 +72,7 @@ function isSentenceEnd(text: string, i: number): boolean {
   if (text[i] === '.') {
     // decimal: 3.14
     if (/\d/.test(text[i - 1] || '') && /\d/.test(text[i + 1] || '')) return false;
-    // mid-word abbreviation: e.g, U.S
+    // mid-word abbreviation (e.g, U.S). Known limitation: title abbreviations like "Mr." / "Dr." followed by a space ARE treated as sentence ends — acceptable for PDF translation.
     if (/[A-Za-z]/.test(text[i - 1] || '') && /[A-Za-z]/.test(text[i + 1] || '')) return false;
   }
   return true;
@@ -100,6 +100,7 @@ export function expandToSentence(
   const { text, owner } = flatten(items);
   const localText = items[anchorArray].text;
   const g = globalIndexOf(owner, anchorArray, Math.max(0, Math.min(anchorChar, localText.length - 1)));
+  // Anchor on an empty/zero-width item (not produced by our text layer, which only renders non-empty spans): resolve to no selection; callers treat null as a no-op.
   if (g < 0) return null;
 
   let start = 0;
@@ -126,8 +127,9 @@ export function expandToParagraph(items: SelItem[], anchorArray: number): Select
   const gap = h * 1.5;
   // Same line (dy ~ 0) or next line (dy ~ h) stays in paragraph; big jumps and
   // column breaks (large +/- dy) end it.
-  const contiguous = (above: SelItem, below: SelItem) => {
-    const dy = below.y - above.y;
+  // Gap threshold is relative to the ANCHOR item's height by design, so tapping a heading vs. body line can group differently. prev/curr are in reading order; the negative-dy guard catches column jumps.
+  const contiguous = (prev: SelItem, curr: SelItem) => {
+    const dy = curr.y - prev.y;
     return dy <= gap && dy >= -gap;
   };
   let lo = anchorArray, hi = anchorArray;

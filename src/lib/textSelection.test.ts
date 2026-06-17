@@ -65,3 +65,16 @@ test('findArrayIndex maps itemIndex to array position', () => {
   assert.equal(findArrayIndex(items, 2), 2);
   assert.equal(findArrayIndex(items, 99), -1);
 });
+
+test('expandToWord at text.length selects the last word', () => {
+  assert.deepEqual(expandToWord('hello world', 11), { start: 6, end: 11 });
+});
+
+test('findArrayIndex maps a sparse itemIndex to its array position', () => {
+  const sparse: SelItem[] = [
+    { itemIndex: 10, text: 'a', y: 0, height: 10 },
+    { itemIndex: 20, text: 'b', y: 10, height: 10 },
+  ];
+  assert.equal(findArrayIndex(sparse, 20), 1);
+  assert.equal(findArrayIndex(sparse, 10), 0);
+});
