@@ -6,7 +6,8 @@
         "dev": "next dev",
         "build": "next build",
         "start": "next start",
-        "lint": "next lint"
+        "lint": "next lint",
+        "test": "node --test src/lib/textSelection.test.ts"
     },
     "dependencies": {
         "@chenglou/pretext": "^0.0.3",
