@@ -403,6 +403,41 @@ export function matchTokens(
   return results;
 }
 
+/** Single-token fuzzy match: doc tokens within bounded edit distance of the folded query. */
+export function fuzzySearch(
+  pageData: PageData[],
+  foldedQuery: string,
+  caseSensitive: boolean,
+): Omit<SearchResult, 'matchTier'>[] {
+  const results: Omit<SearchResult, 'matchTier'>[] = [];
+  if (foldedQuery.length < 4 || !/[a-z]/i.test(foldedQuery)) return results;
+  const maxDist = foldedQuery.length <= 7 ? 1 : 2;
+
+  for (const pd of pageData) {
+    for (const t of pd.tokens) {
+      const key = foldKey(t.token, caseSensitive);
+      if (key === foldedQuery) continue; // exact/fold already covered by lower tiers
+      if (Math.abs(key.length - foldedQuery.length) > maxDist) continue;
+      if (levenshtein(key, foldedQuery, maxDist) > maxDist) continue;
+
+      const hit = findItemAt(pd.offsets, t.start);
+      if (!hit) continue;
+      const localStart = Math.max(0, t.start - hit.start);
+      const localEnd = Math.min(hit.item.text.length, t.end - hit.start);
+      results.push({
+        id: `${pd.page}-${hit.item.itemIndex}-${t.start}`,
+        page: pd.page,
+        matchedToken: t.token,
+        context: hit.item.text,
+        itemIndex: hit.item.itemIndex,
+        charStart: localStart,
+        charEnd: localEnd,
+      });
+    }
+  }
+  return results;
+}
+
 /** Merge tiered result lists: dedup by position (keep lowest tier), then sort tier→page→pos. */
 export function mergeTiers(tiers: Omit<SearchResult, 'matchTier'>[][]): SearchResult[] {
   const seen = new Set<string>();
@@ -580,5 +615,7 @@ export function searchDocument(
   const stemQ = foldQ.map((k) => stem(k));
   const tier2 = matchTokens(pageData, stemQ, (tok) => stem(foldKey(tok, caseSensitive)));
 
-  return mergeTiers([tier0, tier1, tier2]);
+  const tier3 = qTokens.length === 1 ? fuzzySearch(pageData, foldQ[0], caseSensitive) : [];
+
+  return mergeTiers([tier0, tier1, tier2, tier3]);
 }

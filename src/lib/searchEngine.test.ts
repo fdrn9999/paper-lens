@@ -143,3 +143,20 @@ test('searchDocument leaves CJK queries to tier 0', () => {
   assert.equal(out.length, 1);
   assert.equal(out[0].matchTier, 0);
 });
+
+test('searchDocument tolerates a typo in tier 3', () => {
+  const out = searchDocument([page(1, 'supervised learning methods')], 'lerning');
+  assert.equal(out.length, 1);
+  assert.equal(out[0].matchedToken, 'learning');
+  assert.equal(out[0].matchTier, 3);
+});
+
+test('searchDocument does not fuzzy-match very short queries', () => {
+  const out = searchDocument([page(1, 'the car is red')], 'cat');
+  assert.equal(out.length, 0); // 'cat' (len 3) gets no fuzzy tier; no exact/stem either
+});
+
+test('searchDocument skips fuzzy for multi-word queries', () => {
+  const out = searchDocument([page(1, 'deep neural network')], 'deap neural');
+  assert.equal(out.length, 0);
+});
