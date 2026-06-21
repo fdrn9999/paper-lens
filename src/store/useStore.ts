@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { PageTextContent, SearchResult, TranslationErrorCode, ExtractedKeyword, KeywordAlgorithm, SearchTerm, ChatMessage } from '@/lib/types';
-import { exactSearch } from '@/lib/searchEngine';
+import { searchDocument } from '@/lib/searchEngine';
 
 /** Show toast notification (lazy import to avoid circular deps) */
 function showToastSafe(text: string, type: 'success' | 'error' | 'info' = 'info') {
@@ -342,7 +342,7 @@ const useStore = create<AppState>()(
         setTimeout(() => {
           const allResults: SearchResult[] = [];
           for (const st of terms) {
-            const results = exactSearch(pageTextContents, st.term, caseSensitive);
+            const results = searchDocument(pageTextContents, st.term, caseSensitive);
             for (const r of results) {
               r.termColor = st.color;
               r.termLabel = st.term;
