@@ -29,6 +29,7 @@ export function foldText(text: string, lower: boolean): { folded: string; toOrig
  * Conservative English stemmer: plurals + -ing/-ed only.
  * Operates on lowercase ASCII-letter tokens; returns others unchanged.
  * Does NOT restore double consonants (running → runn) to avoid over-stemming.
+ * Accepted over-stem: -ing/-ed words whose base ends in e are NOT restored (e.g. caring → car, not care).
  */
 export function stem(token: string): string {
   if (!/^[a-z]+$/.test(token)) return token;
@@ -81,7 +82,7 @@ export interface PageData {
 
 const pageDataCache = new WeakMap<PageTextContent[], PageData[]>();
 
-/** Build (and memoize per array identity) the concat text, offsets, and tokens per page. */
+/** Build (and memoize per array identity) the concat text, offsets, and tokens per page. WeakMap is keyed by array identity and only hits when the caller passes a STABLE pageContents reference across calls. */
 export function buildPageData(pageContents: PageTextContent[]): PageData[] {
   const cached = pageDataCache.get(pageContents);
   if (cached) return cached;

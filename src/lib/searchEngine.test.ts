@@ -44,6 +44,12 @@ test('stem leaves non-latin / short / numeric tokens untouched', () => {
   assert.equal(stem('2024'), '2024');
 });
 
+test('stem precision boundary: accepted over-stem, no false core collisions', () => {
+  assert.equal(stem('caring'), 'car');                 // accepted over-stem (base ends in e, not restored)
+  assert.notEqual(stem('university'), stem('universal')); // must NOT collide
+});
+
+
 test('levenshtein computes small edit distances', () => {
   assert.equal(levenshtein('learning', 'learning', 2), 0);
   assert.equal(levenshtein('learning', 'lerning', 2), 1);
