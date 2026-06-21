@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { foldText, stem, levenshtein } from './searchEngine.ts';
+import { foldText, stem, levenshtein, buildPageData, matchTokens, foldKey, mergeTiers, searchDocument } from './searchEngine.ts';
+import type { PageTextContent } from './types.ts';
 
 test('foldText strips diacritics and lowercases', () => {
   const r = foldText('Café', true);
@@ -53,9 +54,6 @@ test('levenshtein early-bails above max', () => {
   assert.ok(levenshtein('abc', 'xyz', 1) > 1);
 });
 
-import { buildPageData } from './searchEngine.ts';
-import type { PageTextContent } from './types.ts';
-
 function page(p: number, ...texts: string[]): PageTextContent {
   const items = texts.map((text, itemIndex) => ({
     text, page: p, itemIndex, transform: [], width: 0, height: 0,
@@ -73,8 +71,6 @@ test('buildPageData concatenates items, tokenizes, and memoizes by identity', ()
   assert.equal(buildPageData(pages), a);
 });
 
-import { matchTokens, foldKey } from './searchEngine.ts';
-
 test('matchTokens matches via a key transform (identity = exact tokens)', () => {
   const pd = buildPageData([page(1, 'A neural model here', 'two models there')]);
   const keyOf = (t: string) => foldKey(t, false);
@@ -91,8 +87,6 @@ test('matchTokens supports multi-word phrases', () => {
   assert.equal(res.length, 1);
   assert.equal(res[0].matchedToken, 'neural network');
 });
-
-import { mergeTiers } from './searchEngine.ts';
 
 const mk = (page: number, itemIndex: number, charStart: number, token: string) => ({
   id: `${page}-${itemIndex}-${charStart}`, page, itemIndex, charStart,
@@ -116,8 +110,6 @@ test('mergeTiers sorts by tier then document order', () => {
   const out = mergeTiers([exact, fold]);
   assert.deepEqual(out.map((r) => r.matchedToken), ['a', 'b']); // tier 0 before tier 1
 });
-
-import { searchDocument } from './searchEngine.ts';
 
 test('searchDocument ranks exact before stemmed variants', () => {
   const pages = [page(1, 'A model here', 'many models too')];
