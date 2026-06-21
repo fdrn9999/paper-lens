@@ -25,6 +25,31 @@ export function foldText(text: string, lower: boolean): { folded: string; toOrig
   return { folded, toOriginal };
 }
 
+/**
+ * Conservative English stemmer: plurals + -ing/-ed only.
+ * Operates on lowercase ASCII-letter tokens; returns others unchanged.
+ * Does NOT restore double consonants (running → runn) to avoid over-stemming.
+ */
+export function stem(token: string): string {
+  if (!/^[a-z]+$/.test(token)) return token;
+
+  if (token.endsWith('ies') && token.length >= 5) return token.slice(0, -3) + 'y';
+
+  if (token.endsWith('es') && token.length >= 5) {
+    const dropEs = token.slice(0, -2); // boxes → box
+    const dropS = token.slice(0, -1);  // modes → mode
+    return /(s|x|z|ch|sh)$/.test(dropEs) ? dropEs : dropS;
+  }
+
+  if (token.endsWith('s') && !token.endsWith('ss') && token.length >= 4) return token.slice(0, -1);
+
+  if (token.endsWith('ing') && token.length >= 6) return token.slice(0, -3);
+
+  if (token.endsWith('ed') && token.length >= 5) return token.slice(0, -2);
+
+  return token;
+}
+
 interface TokenWithPosition {
   token: string;
   start: number;
