@@ -160,3 +160,24 @@ test('searchDocument skips fuzzy for multi-word queries', () => {
   const out = searchDocument([page(1, 'deep neural network')], 'deap neural');
   assert.equal(out.length, 0);
 });
+
+test('searchDocument matches a line-break-hyphenated word across items', () => {
+  const out = searchDocument([page(1, 'we learn-', 'ing models')], 'learning');
+  assert.ok(out.length >= 1);
+  assert.equal(out[0].page, 1);
+});
+
+test('searchDocument matches across an in-word hyphen', () => {
+  const out = searchDocument([page(1, 'a co-operate clause')], 'cooperate');
+  assert.ok(out.length >= 1);
+});
+
+test('searchDocument preserves existing exact + multi-term behavior', () => {
+  const pages = [page(1, 'Artificial Intelligence', 'and AI systems')];
+  const phrase = searchDocument(pages, 'artificial intelligence');
+  assert.equal(phrase.length, 1);
+  assert.equal(phrase[0].matchTier, 0);
+
+  const acro = searchDocument(pages, 'AI');
+  assert.ok(acro.some((r) => r.matchedToken === 'AI'));
+});
