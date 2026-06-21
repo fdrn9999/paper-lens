@@ -91,3 +91,28 @@ test('matchTokens supports multi-word phrases', () => {
   assert.equal(res.length, 1);
   assert.equal(res[0].matchedToken, 'neural network');
 });
+
+import { mergeTiers } from './searchEngine.ts';
+
+const mk = (page: number, itemIndex: number, charStart: number, token: string) => ({
+  id: `${page}-${itemIndex}-${charStart}`, page, itemIndex, charStart,
+  charEnd: charStart + token.length, matchedToken: token, context: token,
+});
+
+test('mergeTiers keeps the exact (lowest) tier on a position collision', () => {
+  const exact = [mk(1, 0, 2, 'model')];
+  const stem = [mk(1, 0, 2, 'model'), mk(1, 1, 5, 'models')];
+  const out = mergeTiers([exact, [], stem]);
+  assert.equal(out.length, 2);
+  assert.equal(out[0].matchTier, 0);
+  assert.equal(out[0].matchedToken, 'model');
+  assert.equal(out[1].matchTier, 2);
+  assert.equal(out[1].matchedToken, 'models');
+});
+
+test('mergeTiers sorts by tier then document order', () => {
+  const exact = [mk(2, 0, 0, 'a')];
+  const fold = [mk(1, 0, 0, 'b')];
+  const out = mergeTiers([exact, fold]);
+  assert.deepEqual(out.map((r) => r.matchedToken), ['a', 'b']); // tier 0 before tier 1
+});

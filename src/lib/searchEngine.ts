@@ -403,6 +403,24 @@ export function matchTokens(
   return results;
 }
 
+/** Merge tiered result lists: dedup by position (keep lowest tier), then sort tier→page→pos. */
+export function mergeTiers(tiers: Omit<SearchResult, 'matchTier'>[][]): SearchResult[] {
+  const seen = new Set<string>();
+  const out: SearchResult[] = [];
+  for (let tier = 0; tier < tiers.length; tier++) {
+    for (const r of tiers[tier]) {
+      const key = `${r.page}:${r.itemIndex}:${r.charStart}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push({ ...r, matchTier: tier });
+    }
+  }
+  out.sort((a, b) =>
+    (a.matchTier! - b.matchTier!) || (a.page - b.page) || (a.charStart - b.charStart)
+  );
+  return out;
+}
+
 /**
  * Token-based exact search.
  * Items are joined WITH spaces so that "Artificial" + "Intelligence" is searchable
