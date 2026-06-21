@@ -52,3 +52,23 @@ test('levenshtein computes small edit distances', () => {
 test('levenshtein early-bails above max', () => {
   assert.ok(levenshtein('abc', 'xyz', 1) > 1);
 });
+
+import { buildPageData } from './searchEngine.ts';
+import type { PageTextContent } from './types.ts';
+
+function page(p: number, ...texts: string[]): PageTextContent {
+  const items = texts.map((text, itemIndex) => ({
+    text, page: p, itemIndex, transform: [], width: 0, height: 0,
+  }));
+  return { page: p, items, fullText: texts.join(' ') };
+}
+
+test('buildPageData concatenates items, tokenizes, and memoizes by identity', () => {
+  const pages = [page(1, 'Neural networks', 'learn fast')];
+  const a = buildPageData(pages);
+  assert.equal(a.length, 1);
+  assert.equal(a[0].concat, 'Neural networks learn fast');
+  assert.deepEqual(a[0].tokens.map((t) => t.token), ['Neural', 'networks', 'learn', 'fast']);
+  // same array reference returns the same cached object
+  assert.equal(buildPageData(pages), a);
+});

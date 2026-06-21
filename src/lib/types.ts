@@ -33,6 +33,8 @@ export interface SearchResult {
   termColor?: string;
   /** Label identifying which search term matched */
   termLabel?: string;
+  /** Match quality tier: 0 exact, 1 accent/case fold, 2 stem, 3 fuzzy. */
+  matchTier?: number;
 }
 
 /**

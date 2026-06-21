@@ -72,13 +72,35 @@ export function levenshtein(a: string, b: string, max: number): number {
   return prev[b.length];
 }
 
-interface TokenWithPosition {
+export interface PageData {
+  page: number;
+  concat: string;
+  offsets: ItemOffset[];
+  tokens: TokenWithPosition[];
+}
+
+const pageDataCache = new WeakMap<PageTextContent[], PageData[]>();
+
+/** Build (and memoize per array identity) the concat text, offsets, and tokens per page. */
+export function buildPageData(pageContents: PageTextContent[]): PageData[] {
+  const cached = pageDataCache.get(pageContents);
+  if (cached) return cached;
+  const data: PageData[] = [];
+  for (const pg of pageContents) {
+    const { text: concat, offsets } = buildConcatText(pg.items, ' ');
+    data.push({ page: pg.page, concat, offsets, tokens: tokenize(concat) });
+  }
+  pageDataCache.set(pageContents, data);
+  return data;
+}
+
+export interface TokenWithPosition {
   token: string;
   start: number;
   end: number;
 }
 
-interface ItemOffset {
+export interface ItemOffset {
   item: ExtractedTextItem;
   /** Start position of this item's text in the concatenated page text */
   start: number;
