@@ -1,13 +1,14 @@
 {
     "name": "paperlens",
     "version": "0.1.0",
+    "type": "module",
     "private": true,
     "scripts": {
         "dev": "next dev",
         "build": "next build",
         "start": "next start",
         "lint": "next lint",
-        "test": "node --test src/lib/textSelection.test.ts"
+        "test": "node --test src/lib/textSelection.test.ts src/lib/searchEngine.test.ts"
     },
     "dependencies": {
         "@chenglou/pretext": "^0.0.3",

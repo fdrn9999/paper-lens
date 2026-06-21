@@ -1,4 +1,29 @@
-import { PageTextContent, SearchResult, ExtractedTextItem, HighlightSpan } from './types';
+import type { PageTextContent, SearchResult, ExtractedTextItem, HighlightSpan } from './types.ts';
+
+/** Fold one source character: NFKC (ligatures, width) → strip diacritics → optional lowercase. */
+export function foldChar(ch: string, lower: boolean): string {
+  // strip combining diacritics in the Unicode range U+0300..U+036F
+  let f = ch.normalize('NFKC').normalize('NFD').replace(/[̀-ͯ]/g, '');
+  if (lower) f = f.toLowerCase();
+  return f;
+}
+
+/**
+ * Fold a whole string for accent/case-insensitive matching while keeping a map
+ * back to the original indices (folding can change length, e.g. ﬁ → fi).
+ */
+export function foldText(text: string, lower: boolean): { folded: string; toOriginal: number[] } {
+  let folded = '';
+  const toOriginal: number[] = [];
+  for (let i = 0; i < text.length; i++) {
+    const f = foldChar(text[i], lower);
+    for (let k = 0; k < f.length; k++) {
+      folded += f[k];
+      toOriginal.push(i);
+    }
+  }
+  return { folded, toOriginal };
+}
 
 interface TokenWithPosition {
   token: string;
