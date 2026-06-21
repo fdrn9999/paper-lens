@@ -549,3 +549,36 @@ export function exactSearch(
 
   return results;
 }
+
+/**
+ * Tiered lexical search. Tier 0 = exact (incl. CJK/special/kerning).
+ * Tiers 1-2 (accent-fold, stem) run for Latin queries only. Tier 3 (fuzzy) is added in Task 8.
+ */
+export function searchDocument(
+  pageContents: PageTextContent[],
+  keyword: string,
+  caseSensitive: boolean = false,
+): SearchResult[] {
+  const trimmed = keyword.trim();
+  if (!trimmed) return [];
+
+  const tier0 = exactSearch(pageContents, trimmed, caseSensitive);
+
+  // CJK / special-char queries: tier 0 only.
+  if (containsCJK(trimmed) || containsSpecialChars(trimmed)) {
+    return mergeTiers([tier0]);
+  }
+
+  const qTokens = tokenize(trimmed).map((t) => t.token);
+  if (qTokens.length === 0) return mergeTiers([tier0]);
+
+  const pageData = buildPageData(pageContents);
+
+  const foldQ = qTokens.map((t) => foldKey(t, caseSensitive));
+  const tier1 = matchTokens(pageData, foldQ, (tok) => foldKey(tok, caseSensitive));
+
+  const stemQ = foldQ.map((k) => stem(k));
+  const tier2 = matchTokens(pageData, stemQ, (tok) => stem(foldKey(tok, caseSensitive)));
+
+  return mergeTiers([tier0, tier1, tier2]);
+}

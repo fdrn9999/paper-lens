@@ -116,3 +116,30 @@ test('mergeTiers sorts by tier then document order', () => {
   const out = mergeTiers([exact, fold]);
   assert.deepEqual(out.map((r) => r.matchedToken), ['a', 'b']); // tier 0 before tier 1
 });
+
+import { searchDocument } from './searchEngine.ts';
+
+test('searchDocument ranks exact before stemmed variants', () => {
+  const pages = [page(1, 'A model here', 'many models too')];
+  const out = searchDocument(pages, 'model');
+  assert.equal(out[0].matchTier, 0);
+  assert.equal(out[0].matchedToken, 'model');
+  assert.equal(out[1].matchTier, 2);
+  assert.equal(out[1].matchedToken, 'models');
+});
+
+test('searchDocument finds accent and ligature variants in tier 1', () => {
+  const accent = searchDocument([page(1, 'the café menu')], 'cafe');
+  assert.equal(accent[0].matchedToken, 'café');
+  assert.equal(accent[0].matchTier, 1);
+
+  const lig = searchDocument([page(1, 'open the ﬁle now')], 'file'); // "ﬁle"
+  assert.equal(lig.length, 1);
+  assert.equal(lig[0].matchTier, 1);
+});
+
+test('searchDocument leaves CJK queries to tier 0', () => {
+  const out = searchDocument([page(1, '인공지능은 강력하다')], '인공지능');
+  assert.equal(out.length, 1);
+  assert.equal(out[0].matchTier, 0);
+});
