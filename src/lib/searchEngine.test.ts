@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { foldText, stem } from './searchEngine.ts';
+import { foldText, stem, levenshtein } from './searchEngine.ts';
 
 test('foldText strips diacritics and lowercases', () => {
   const r = foldText('Café', true);
@@ -41,4 +41,14 @@ test('stem leaves non-latin / short / numeric tokens untouched', () => {
   assert.equal(stem('인공지능'), '인공지능');
   assert.equal(stem('is'), 'is');
   assert.equal(stem('2024'), '2024');
+});
+
+test('levenshtein computes small edit distances', () => {
+  assert.equal(levenshtein('learning', 'learning', 2), 0);
+  assert.equal(levenshtein('learning', 'lerning', 2), 1);
+  assert.equal(levenshtein('kitten', 'sitting', 3), 3);
+});
+
+test('levenshtein early-bails above max', () => {
+  assert.ok(levenshtein('abc', 'xyz', 1) > 1);
 });
