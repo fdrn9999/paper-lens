@@ -352,6 +352,57 @@ function cjkSearch(
   return results;
 }
 
+/** Folded key for a single token (accent/case-insensitive, accent always folded). */
+export function foldKey(token: string, caseSensitive: boolean): string {
+  return foldText(token, !caseSensitive).folded;
+}
+
+/**
+ * Find consecutive runs of tokens whose keyOf(token) equals queryKeys, across all pages.
+ * Highlight positions map to the original concat/item text.
+ */
+export function matchTokens(
+  pageData: PageData[],
+  queryKeys: string[],
+  keyOf: (token: string) => string,
+): Omit<SearchResult, 'matchTier'>[] {
+  const results: Omit<SearchResult, 'matchTier'>[] = [];
+  if (queryKeys.length === 0) return results;
+
+  for (const pd of pageData) {
+    const { concat, offsets, tokens } = pd;
+    if (tokens.length < queryKeys.length) continue;
+    const keys = tokens.map((t) => keyOf(t.token));
+
+    for (let i = 0; i + queryKeys.length <= tokens.length; i++) {
+      let ok = true;
+      for (let j = 0; j < queryKeys.length; j++) {
+        if (keys[i + j] !== queryKeys[j]) { ok = false; break; }
+      }
+      if (!ok) continue;
+
+      const first = tokens[i];
+      const last = tokens[i + queryKeys.length - 1];
+      const hit = findItemAt(offsets, first.start);
+      if (!hit) continue;
+      const localStart = Math.max(0, first.start - hit.start);
+      const localEnd = Math.min(hit.item.text.length, last.end - hit.start);
+      const spans = findSpannedItems(offsets, first.start, last.end);
+      results.push({
+        id: `${pd.page}-${hit.item.itemIndex}-${first.start}`,
+        page: pd.page,
+        matchedToken: concat.slice(first.start, last.end),
+        context: hit.item.text,
+        itemIndex: hit.item.itemIndex,
+        charStart: localStart,
+        charEnd: localEnd,
+        spans: spans.length > 1 ? spans : undefined,
+      });
+    }
+  }
+  return results;
+}
+
 /**
  * Token-based exact search.
  * Items are joined WITH spaces so that "Artificial" + "Intelligence" is searchable

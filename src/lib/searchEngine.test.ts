@@ -72,3 +72,22 @@ test('buildPageData concatenates items, tokenizes, and memoizes by identity', ()
   // same array reference returns the same cached object
   assert.equal(buildPageData(pages), a);
 });
+
+import { matchTokens, foldKey } from './searchEngine.ts';
+
+test('matchTokens matches via a key transform (identity = exact tokens)', () => {
+  const pd = buildPageData([page(1, 'A neural model here', 'two models there')]);
+  const keyOf = (t: string) => foldKey(t, false);
+  const res = matchTokens(pd, ['model'], keyOf);
+  assert.equal(res.length, 1);
+  assert.equal(res[0].matchedToken, 'model');
+  assert.equal(res[0].page, 1);
+});
+
+test('matchTokens supports multi-word phrases', () => {
+  const pd = buildPageData([page(1, 'deep neural network design')]);
+  const keyOf = (t: string) => foldKey(t, false);
+  const res = matchTokens(pd, ['neural', 'network'], keyOf);
+  assert.equal(res.length, 1);
+  assert.equal(res[0].matchedToken, 'neural network');
+});
