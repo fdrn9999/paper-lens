@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 import useStore from '@/store/useStore';
+import { nextTabIndex } from '@/lib/a11y';
 import FileUploader from '@/components/FileUploader';
 import PDFViewer from '@/components/PDFViewer';
 import SearchBar from '@/components/SearchBar';
@@ -15,6 +16,8 @@ import HelpButton from '@/components/HelpButton';
 import UsageButton from '@/components/UsageButton';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import ToastContainer from '@/components/Toast';
+
+const SIDEBAR_TABS = ['search', 'keywords', 'chat'] as const;
 
 export default function Home() {
   const pdfData = useStore((s) => s.pdfData);
@@ -32,6 +35,17 @@ export default function Home() {
   const sidebarTab = useStore((s) => s.sidebarTab);
   const setSidebarTab = useStore((s) => s.setSidebarTab);
   const fetchQuota = useStore((s) => s.fetchQuota);
+
+  const sidebarTablistRef = useRef<HTMLDivElement>(null);
+  const handleSidebarTabKeys = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
+    const current = SIDEBAR_TABS.indexOf(sidebarTab as (typeof SIDEBAR_TABS)[number]);
+    const next = nextTabIndex(e.key, current, SIDEBAR_TABS.length);
+    if (next === null) return;
+    e.preventDefault();
+    setSidebarTab(SIDEBAR_TABS[next]);
+    const tabs = sidebarTablistRef.current?.querySelectorAll<HTMLButtonElement>('[role="tab"]');
+    tabs?.[next]?.focus();
+  }, [sidebarTab, setSidebarTab]);
 
   // Fetch quota on mount so UsageButton dropdown has data
   useEffect(() => { fetchQuota(); }, [fetchQuota]);
@@ -343,46 +357,69 @@ export default function Home() {
         >
           {/* Sidebar header with tabs */}
           <div className="flex items-center border-b shrink-0">
-            <button
-              onClick={() => setSidebarTab('search')}
-              className={`flex-1 px-3 py-2 text-sm font-medium transition-colors relative min-h-[44px] flex items-center justify-center ${
-                sidebarTab === 'search' ? 'text-blue-600' : 'text-gray-500 hover:text-gray-700'
-              }`}
+            <div
+              ref={sidebarTablistRef}
+              role="tablist"
+              aria-label="사이드바 패널"
+              onKeyDown={handleSidebarTabKeys}
+              className="flex flex-1"
             >
-              검색 결과
-              {searchResults.length > 0 && (
-                <span className="ml-1 text-[10px] bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded-full">
-                  {searchResults.length > 99 ? '99+' : searchResults.length}
-                </span>
-              )}
-              {sidebarTab === 'search' && (
-                <div className="absolute bottom-0 left-2 right-2 h-0.5 bg-blue-600 rounded-full" />
-              )}
-            </button>
-            <button
-              onClick={() => setSidebarTab('keywords')}
-              data-guide="keyword-tab"
-              className={`flex-1 px-3 py-2 text-sm font-medium transition-colors relative min-h-[44px] flex items-center justify-center ${
-                sidebarTab === 'keywords' ? 'text-blue-600' : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              키워드
-              {sidebarTab === 'keywords' && (
-                <div className="absolute bottom-0 left-2 right-2 h-0.5 bg-blue-600 rounded-full" />
-              )}
-            </button>
-            <button
-              onClick={() => setSidebarTab('chat')}
-              data-guide="chat-tab"
-              className={`flex-1 px-3 py-2 text-sm font-medium transition-colors relative min-h-[44px] flex items-center justify-center ${
-                sidebarTab === 'chat' ? 'text-purple-600' : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              AI
-              {sidebarTab === 'chat' && (
-                <div className="absolute bottom-0 left-2 right-2 h-0.5 bg-purple-600 rounded-full" />
-              )}
-            </button>
+              <button
+                role="tab"
+                id="sidebar-tab-search"
+                aria-selected={sidebarTab === 'search'}
+                aria-controls="sidebar-tabpanel"
+                tabIndex={sidebarTab === 'search' ? 0 : -1}
+                onClick={() => setSidebarTab('search')}
+                className={`flex-1 px-3 py-2 text-sm font-medium transition-colors relative min-h-[44px] flex items-center justify-center ${
+                  sidebarTab === 'search' ? 'text-blue-600' : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                검색 결과
+                {searchResults.length > 0 && (
+                  <span className="ml-1 text-[10px] bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded-full">
+                    {searchResults.length > 99 ? '99+' : searchResults.length}
+                  </span>
+                )}
+                {sidebarTab === 'search' && (
+                  <div className="absolute bottom-0 left-2 right-2 h-0.5 bg-blue-600 rounded-full" />
+                )}
+              </button>
+              <button
+                role="tab"
+                id="sidebar-tab-keywords"
+                aria-selected={sidebarTab === 'keywords'}
+                aria-controls="sidebar-tabpanel"
+                tabIndex={sidebarTab === 'keywords' ? 0 : -1}
+                onClick={() => setSidebarTab('keywords')}
+                data-guide="keyword-tab"
+                className={`flex-1 px-3 py-2 text-sm font-medium transition-colors relative min-h-[44px] flex items-center justify-center ${
+                  sidebarTab === 'keywords' ? 'text-blue-600' : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                키워드
+                {sidebarTab === 'keywords' && (
+                  <div className="absolute bottom-0 left-2 right-2 h-0.5 bg-blue-600 rounded-full" />
+                )}
+              </button>
+              <button
+                role="tab"
+                id="sidebar-tab-chat"
+                aria-selected={sidebarTab === 'chat'}
+                aria-controls="sidebar-tabpanel"
+                tabIndex={sidebarTab === 'chat' ? 0 : -1}
+                onClick={() => setSidebarTab('chat')}
+                data-guide="chat-tab"
+                className={`flex-1 px-3 py-2 text-sm font-medium transition-colors relative min-h-[44px] flex items-center justify-center ${
+                  sidebarTab === 'chat' ? 'text-purple-600' : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                AI
+                {sidebarTab === 'chat' && (
+                  <div className="absolute bottom-0 left-2 right-2 h-0.5 bg-purple-600 rounded-full" />
+                )}
+              </button>
+            </div>
             {/* Close button (mobile + tablet) */}
             <button
               onClick={() => setIsSidebarOpen(false)}
@@ -394,7 +431,14 @@ export default function Home() {
               </svg>
             </button>
           </div>
-          {sidebarTab === 'search' ? <ResultList /> : sidebarTab === 'keywords' ? <KeywordPanel /> : <ChatPanel />}
+          <div
+            id="sidebar-tabpanel"
+            role="tabpanel"
+            aria-labelledby={`sidebar-tab-${sidebarTab}`}
+            className="flex-1 min-h-0 flex flex-col overflow-hidden"
+          >
+            {sidebarTab === 'search' ? <ResultList /> : sidebarTab === 'keywords' ? <KeywordPanel /> : <ChatPanel />}
+          </div>
         </aside>
 
         {/* Main - PDF Viewer */}
@@ -403,7 +447,7 @@ export default function Home() {
             section="PDF 뷰어"
             fallback={
               <div className="flex-1 flex flex-col items-center justify-center gap-4 p-8 text-center bg-gray-100">
-                <div className="text-5xl">📄</div>
+                <div className="text-5xl" aria-hidden="true">📄</div>
                 <h2 className="text-lg font-semibold text-gray-800">PDF를 표시할 수 없습니다</h2>
                 <p className="text-sm text-gray-500">파일이 손상되었거나 지원하지 않는 형식일 수 있습니다.</p>
                 <button

@@ -1,8 +1,9 @@
 'use client';
 
-import { memo, useCallback, useMemo, useState } from 'react';
+import { memo, useCallback, useMemo, useRef, useState } from 'react';
 import useStore from '@/store/useStore';
 import type { ExtractedKeyword, KeywordAlgorithm } from '@/lib/types';
+import { nextTabIndex } from '@/lib/a11y';
 
 const ALGO_TABS: { key: KeywordAlgorithm; label: string }[] = [
   { key: 'tfidf', label: 'TF-IDF' },
@@ -88,15 +89,8 @@ const KeywordCard = memo(function KeywordCard({
 
   return (
     <div
-      role="button"
-      tabIndex={0}
-      onClick={handleClick}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          handleClick();
-        }
-      }}
+      role="group"
+      aria-label={`키워드: ${keyword.term}, 점수: ${scorePct}%`}
       className={`w-full text-left rounded-lg border transition-all duration-150 overflow-hidden ${
         isActive
           ? 'ring-1 ring-offset-1 shadow-sm'
@@ -107,17 +101,23 @@ const KeywordCard = memo(function KeywordCard({
         backgroundColor: `${keyword.color}10`,
         boxShadow: `0 0 0 1px ${keyword.color}`,
       } : undefined}
-      aria-pressed={isActive}
-      aria-label={`키워드: ${keyword.term}, 점수: ${scorePct}%`}
     >
       <div className="flex">
         {/* Color bar */}
         <div className="w-1 shrink-0 rounded-l-lg" style={{ backgroundColor: keyword.color }} />
 
         <div className="flex-1 min-w-0 p-2.5">
-          {/* Header: term + badge */}
+          {/* Header: term (toggles highlight) + badges */}
           <div className="flex items-center gap-1.5 mb-1.5">
-            <span className="font-bold text-sm text-gray-900 truncate">{keyword.term}</span>
+            <button
+              type="button"
+              onClick={handleClick}
+              aria-pressed={isActive}
+              aria-label={`${keyword.term} 하이라이트 ${isActive ? '끄기' : '켜기'}`}
+              className="font-bold text-sm text-gray-900 truncate text-left min-w-0 hover:text-blue-600 transition-colors"
+            >
+              {keyword.term}
+            </button>
             {keyword.tag && (
               <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-600 shrink-0 font-medium">
                 {keyword.tag}
@@ -215,6 +215,16 @@ export default memo(function KeywordPanel() {
 
   const [showAlgoInfo, setShowAlgoInfo] = useState(false);
 
+  const algoTablistRef = useRef<HTMLDivElement>(null);
+  const handleAlgoTabKeys = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
+    const current = ALGO_TABS.findIndex((t) => t.key === keywordAlgorithm);
+    const next = nextTabIndex(e.key, current, ALGO_TABS.length);
+    if (next === null) return;
+    e.preventDefault();
+    setKeywordAlgorithm(ALGO_TABS[next].key);
+    algoTablistRef.current?.querySelectorAll<HTMLButtonElement>('[role="tab"]')[next]?.focus();
+  }, [keywordAlgorithm, setKeywordAlgorithm]);
+
   const handlePageClick = useCallback((page: number) => {
     setCurrentPage(page);
     // Close sidebar on mobile/tablet so user can see the page
@@ -263,10 +273,21 @@ export default memo(function KeywordPanel() {
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Algorithm tabs */}
-      <div className="flex border-b bg-gray-50 shrink-0">
+      <div
+        ref={algoTablistRef}
+        role="tablist"
+        aria-label="키워드 추출 알고리즘"
+        onKeyDown={handleAlgoTabKeys}
+        className="flex border-b bg-gray-50 shrink-0"
+      >
         {ALGO_TABS.map((tab) => (
           <button
             key={tab.key}
+            role="tab"
+            id={`keyword-tab-${tab.key}`}
+            aria-selected={keywordAlgorithm === tab.key}
+            aria-controls="keyword-tabpanel"
+            tabIndex={keywordAlgorithm === tab.key ? 0 : -1}
             onClick={() => setKeywordAlgorithm(tab.key)}
             className={`flex-1 px-1 py-2 text-xs font-medium transition-colors relative ${
               keywordAlgorithm === tab.key
@@ -345,7 +366,12 @@ export default memo(function KeywordPanel() {
       )}
 
       {/* Content */}
-      <div className="flex-1 overflow-auto p-2.5">
+      <div
+        id="keyword-tabpanel"
+        role="tabpanel"
+        aria-labelledby={`keyword-tab-${keywordAlgorithm}`}
+        className="flex-1 overflow-auto p-2.5"
+      >
         {/* Empty state */}
         {(!keywords || keywords.length === 0) && (
           <div className="flex items-center justify-center py-8">

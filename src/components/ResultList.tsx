@@ -293,7 +293,7 @@ export default memo(function ResultList() {
 
   if (isExtracting && searchResults.length === 0 && !searchQuery) {
     return (
-      <div className="p-4 text-center text-gray-400 text-sm">
+      <div className="p-4 text-center text-gray-400 text-sm" role="status">
         <div className="animate-pulse">텍스트 추출 중...</div>
       </div>
     );
@@ -301,7 +301,7 @@ export default memo(function ResultList() {
 
   if (searchResults.length === 0 && (searchQuery || searchTerms.length > 0)) {
     return (
-      <div className="p-4 text-center text-sm">
+      <div className="p-4 text-center text-sm" role="status">
         {isExtracting ? (
           <div className="text-amber-600">
             <p>&quot;{searchTerms.length > 0 ? searchTerms.map(t => t.term).join(', ') : searchQuery}&quot; 검색 중...</p>
@@ -326,7 +326,7 @@ export default memo(function ResultList() {
       pageTextContents.every((p) => p.items.length === 0);
 
     return (
-      <div className="p-4 text-center text-sm">
+      <div className="p-4 text-center text-sm" role="status">
         {hasNoText ? (
           <div className="text-amber-600">
             <p className="font-medium mb-1">텍스트를 추출할 수 없습니다</p>

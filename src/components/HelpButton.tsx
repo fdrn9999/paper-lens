@@ -1,41 +1,21 @@
 'use client';
 
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import useStore from '@/store/useStore';
+import { usePopover } from '@/lib/usePopover';
 
 export default function HelpButton() {
   const [isOpen, setIsOpen] = useState(false);
-  const panelRef = useRef<HTMLDivElement>(null);
+  const { triggerRef, panelRef } = usePopover(isOpen, useCallback(() => setIsOpen(false), []));
   const startGuide = useStore((s) => s.startGuide);
   const pdfData = useStore((s) => s.pdfData);
   const viewerMode = useStore((s) => s.viewerMode);
   const isScrollMode = useMemo(() => viewerMode === 'scroll', [viewerMode]);
 
-  // Close on click outside
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleClick = (e: MouseEvent) => {
-      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
-  }, [isOpen]);
-
-  // Close on Escape
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setIsOpen(false);
-    };
-    document.addEventListener('keydown', handleKey);
-    return () => document.removeEventListener('keydown', handleKey);
-  }, [isOpen]);
-
   return (
-    <div className="relative shrink-0" ref={panelRef}>
+    <div className="relative shrink-0">
       <button
+        ref={triggerRef}
         onClick={() => setIsOpen(!isOpen)}
         className={`w-11 h-11 sm:w-8 sm:h-8 flex items-center justify-center rounded-full border text-sm font-bold transition-colors
           ${isOpen
@@ -43,13 +23,18 @@ export default function HelpButton() {
             : 'bg-white text-gray-500 border-gray-300 hover:bg-gray-50 hover:text-gray-700'}`}
         title="도움말"
         aria-label="도움말 열기"
+        aria-haspopup="dialog"
         aria-expanded={isOpen}
       >
         ?
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 top-full mt-2 w-72 sm:w-80 max-w-[calc(100vw-1rem)] bg-white rounded-xl shadow-2xl border border-gray-200 z-50 overflow-hidden animate-in fade-in">
+        <div
+          ref={panelRef}
+          role="dialog"
+          aria-label="사용 가이드"
+          className="absolute right-0 top-full mt-2 w-72 sm:w-80 max-w-[calc(100vw-1rem)] bg-white rounded-xl shadow-2xl border border-gray-200 z-50 overflow-hidden animate-in fade-in">
           <div className="p-4 border-b bg-gradient-to-r from-blue-50 to-purple-50">
             <h3 className="font-bold text-gray-800">PaperLens 사용 가이드</h3>
             <p className="text-xs text-gray-500 mt-1">논문을 탐색하는 새로운 방법</p>
