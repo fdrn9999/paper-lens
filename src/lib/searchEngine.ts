@@ -127,7 +127,10 @@ function tokenize(text: string): TokenWithPosition[] {
 }
 
 function containsCJK(text: string): boolean {
-  return /[\u3000-\u9FFF\uAC00-\uD7AF\uF900-\uFAFF]/.test(text);
+  // Includes Hangul Jamo (\u1100-\u11FF) so isolated/decomposed jamo route to CJK
+  // substring search, matching isKoreanText() in the store. Compatibility Jamo
+  // (\u3130-\u318F) is already covered by the \u3000-\u9FFF range.
+  return /[\u1100-\u11FF\u3000-\u9FFF\uAC00-\uD7AF\uF900-\uFAFF]/.test(text);
 }
 
 /** Returns true if query contains special chars that the tokenizer would strip (C++, C#, O(N)). */

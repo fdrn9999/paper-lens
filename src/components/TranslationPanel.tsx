@@ -5,6 +5,7 @@ import useStore from '@/store/useStore';
 import { getTranslationErrorMessage } from '@/lib/messages';
 import type { TranslationErrorCode } from '@/lib/types';
 import QuotaIndicator from '@/components/QuotaIndicator';
+import { copyToClipboard } from '@/lib/clipboard';
 
 export default memo(function TranslationPanel() {
   const selectedText = useStore((s) => s.selectedText);
@@ -93,9 +94,13 @@ export default memo(function TranslationPanel() {
               </p>
               {translationResult && (
                 <button
-                  onClick={() => {
-                    navigator.clipboard.writeText(translationResult);
-                    window.dispatchEvent(new CustomEvent('paperlens-toast', { detail: { text: '복사되었습니다.', type: 'success' } }));
+                  onClick={async () => {
+                    const ok = await copyToClipboard(translationResult);
+                    window.dispatchEvent(new CustomEvent('paperlens-toast', {
+                      detail: ok
+                        ? { text: '복사되었습니다.', type: 'success' }
+                        : { text: '복사에 실패했습니다. 직접 복사해주세요.', type: 'error' },
+                    }));
                   }}
                   className="absolute top-2 right-2 p-1 rounded hover:bg-blue-100 text-gray-400 hover:text-gray-600 transition-colors"
                   title="복사"

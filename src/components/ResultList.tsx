@@ -3,6 +3,7 @@
 import { useCallback, useMemo, useRef, useState, memo, useEffect } from 'react';
 import useStore from '@/store/useStore';
 import type { SearchResult } from '@/lib/types';
+import { DEFAULT_SEARCH_HIGHLIGHT } from '@/lib/searchColors';
 
 const ITEM_HEIGHT = 56;
 const HEADER_HEIGHT = 28;
@@ -74,7 +75,7 @@ function HighlightedContext({ result, isCurrent }: { result: SearchResult; isCur
     ? after.slice(0, afterBudget) + '...'
     : after;
 
-  const color = result.termColor || '#FFD500';
+  const color = result.termColor || DEFAULT_SEARCH_HIGHLIGHT;
 
   return (
     <p className="text-gray-700 leading-snug text-xs line-clamp-2">

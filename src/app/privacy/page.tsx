@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import Script from 'next/script';
 
 export const metadata: Metadata = {
   title: '개인정보처리방침 - PaperLens',
@@ -9,6 +10,13 @@ export const metadata: Metadata = {
 export default function PrivacyPage() {
   return (
     <div className="min-h-[100dvh] bg-white max-w-[100vw] overflow-x-hidden">
+      <Script
+        id="adsbygoogle-init"
+        async
+        strategy="afterInteractive"
+        src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7165994147929640"
+        crossOrigin="anonymous"
+      />
       <a href="#privacy-content" className="skip-to-content">본문으로 건너뛰기</a>
       <header className="flex items-center justify-between px-4 sm:px-6 py-4 border-b bg-white">
         <Link href="/" className="flex items-center gap-2 hover:opacity-70 transition-opacity">
@@ -65,8 +73,8 @@ export default function PrivacyPage() {
               </table>
             </div>
             <p className="mt-3">
-              이용자가 업로드하는 PDF 파일은 서버에 저장되지 않으며, 브라우저 내에서만 처리됩니다.
-              번역 및 시맨틱 검색 요청 시 텍스트 일부가 Google Gemini API로 전송되며, 해당 데이터는 요청 처리 후 서버에 보관되지 않습니다.
+              이용자가 업로드하는 PDF 파일은 서버에 저장되지 않으며, 브라우저 내에서만 처리됩니다. 검색은 전송 없이 브라우저에서 로컬로 처리됩니다.
+              번역 및 AI 분석 요청 시 텍스트 일부가 Google Gemini API로 전송되며, 해당 데이터는 요청 처리 후 서버에 보관되지 않습니다.
             </p>
           </section>
 
@@ -85,7 +93,7 @@ export default function PrivacyPage() {
             <ul className="list-disc pl-5 space-y-1">
               <li><strong>IP 주소</strong>: 서버 메모리에서 일시적으로 처리되며, 일일 단위로 자동 초기화됩니다. 별도의 데이터베이스에 저장하지 않습니다.</li>
               <li><strong>업로드 파일</strong>: 서버에 전송되거나 저장되지 않습니다. 모든 PDF 처리는 이용자의 브라우저에서 수행됩니다.</li>
-              <li><strong>번역/검색 텍스트</strong>: API 요청 처리 후 즉시 폐기되며, 서버에 로그를 남기지 않습니다.</li>
+              <li><strong>번역/AI 분석 텍스트</strong>: API 요청 처리 후 즉시 폐기되며, 서버에 로그를 남기지 않습니다.</li>
             </ul>
           </section>
 
@@ -104,8 +112,8 @@ export default function PrivacyPage() {
                 <tbody>
                   <tr className="border-b">
                     <td className="py-2 px-3">Google (Gemini API)</td>
-                    <td className="py-2 px-3">번역/검색 대상 텍스트</td>
-                    <td className="py-2 px-3">번역 및 시맨틱 검색 처리</td>
+                    <td className="py-2 px-3">번역·AI 분석 대상 텍스트</td>
+                    <td className="py-2 px-3">번역 및 AI 분석 처리</td>
                   </tr>
                   <tr className="border-b">
                     <td className="py-2 px-3">Google (AdSense)</td>
@@ -197,6 +205,10 @@ export default function PrivacyPage() {
         <a href="mailto:ckato9173@gmail.com"
            className="whitespace-nowrap hover:text-gray-600 transition-colors">ckato9173@gmail.com</a>
         <span className="text-gray-300">|</span>
+        <Link href="/about"
+           className="whitespace-nowrap hover:text-gray-600 transition-colors">소개</Link>
+        <Link href="/guide"
+           className="whitespace-nowrap hover:text-gray-600 transition-colors">사용 가이드</Link>
         <Link href="/"
            className="whitespace-nowrap hover:text-gray-600 transition-colors">홈으로</Link>
       </footer>

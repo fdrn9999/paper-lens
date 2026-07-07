@@ -338,7 +338,7 @@ export default memo(function ChatPanel() {
                 className="w-full px-4 py-3 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-xl transition-colors text-left mb-4"
               >
                 <div className="flex items-center gap-2">
-                  <span className="text-lg">📋</span>
+                  <span className="text-lg" aria-hidden="true">📋</span>
                   <div>
                     <p className="text-sm font-semibold text-purple-700">논문 요약 생성하기</p>
                     <p className="text-xs text-purple-500">AI가 논문의 핵심 내용을 구조화하여 요약합니다</p>

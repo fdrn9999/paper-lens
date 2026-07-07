@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { PageTextContent, SearchResult, TranslationErrorCode, ExtractedKeyword, KeywordAlgorithm, SearchTerm, ChatMessage } from '@/lib/types';
 import { searchDocument } from '@/lib/searchEngine';
+import { SEARCH_TERM_COLORS } from '@/lib/searchColors';
 
 /** Show toast notification (lazy import to avoid circular deps) */
 function showToastSafe(text: string, type: 'success' | 'error' | 'info' = 'info') {
@@ -18,12 +19,6 @@ function isKoreanText(text: string): boolean {
   const totalChars = text.replace(/\s/g, '').length;
   return totalChars > 0 && koreanChars / totalChars > 0.3;
 }
-
-/** Search term color palette for multi-term exact search. */
-const SEARCH_TERM_COLORS = [
-  '#FFD500', '#FF6B6B', '#4ECDC4', '#A78BFA', '#FB923C',
-  '#34D399', '#60A5FA', '#F472B6', '#FBBF24', '#818CF8',
-];
 
 let translateAbortController: AbortController | null = null;
 let chatAbortController: AbortController | null = null;
@@ -439,7 +434,10 @@ const useStore = create<AppState>()(
         }
       },
 
-      incrementDailyUsage: (type, charCount = 1) => {
+      // Client-side approximation of characters sent to the API today. The server
+      // (rateLimit.ts) enforces the authoritative character-based quota; this local
+      // counter is only for display/analytics and always uses character counts.
+      incrementDailyUsage: (type, charCount = 0) => {
         const today = getKSTDateString();
         const usage = get().dailyUsage;
         if (usage.date !== today) {
@@ -523,7 +521,7 @@ const useStore = create<AppState>()(
             set({ translationResult: '', isTranslationError: true, translationErrorCode: 'API_ERROR', translationErrorDetail: data.error });
           } else {
             set({ translationResult: data.translation, isTranslationError: false });
-            get().incrementDailyUsage('translate');
+            get().incrementDailyUsage('translate', text.trim().length);
           }
         } catch (err: unknown) {
           if (err instanceof Error && err.name === 'AbortError') return;
@@ -623,7 +621,7 @@ const useStore = create<AppState>()(
           };
 
           set((s) => ({ chatMessages: [...s.chatMessages, assistantMsg] }));
-          get().incrementDailyUsage('chat');
+          get().incrementDailyUsage('chat', message.trim().length);
         } catch (err: unknown) {
           if (err instanceof Error && err.name === 'AbortError') return;
           const errContent = err instanceof Error && err.name === 'TimeoutError'
@@ -658,12 +656,13 @@ const useStore = create<AppState>()(
 
         try {
           const paperContext = pages.map((p) => `[Page ${p.page}]\n${p.fullText}`).join('\n\n').slice(0, 30000);
+          const summaryPrompt = '이 논문을 요약해주세요. 제목, 저자(있다면), 주요 목적, 방법론, 핵심 결과, 결론을 포함하여 구조화된 형태로 요약해주세요.';
 
           const res = await fetchWithTimeout('/api/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              message: '이 논문을 요약해주세요. 제목, 저자(있다면), 주요 목적, 방법론, 핵심 결과, 결론을 포함하여 구조화된 형태로 요약해주세요.',
+              message: summaryPrompt,
               paperContext,
               history: [],
             }),
@@ -679,7 +678,7 @@ const useStore = create<AppState>()(
 
           const data = await res.json();
           set({ chatSummary: data.reply || '요약 결과를 받지 못했습니다.' });
-          get().incrementDailyUsage('chat');
+          get().incrementDailyUsage('chat', summaryPrompt.length);
         } catch (err: unknown) {
           if (err instanceof Error && err.name === 'AbortError') return;
           set({ chatSummary: '논문 요약 중 오류가 발생했습니다.' });

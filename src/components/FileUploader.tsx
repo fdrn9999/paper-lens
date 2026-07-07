@@ -105,7 +105,7 @@ export default function FileUploader() {
         className="hidden"
         aria-label="PDF 파일 선택"
       />
-      <div className="text-6xl mb-4">
+      <div className="text-6xl mb-4" aria-hidden="true">
         {isDragging ? '📥' : '📄'}
       </div>
       <p className="text-xl font-semibold text-gray-700 mb-2">

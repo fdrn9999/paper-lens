@@ -275,7 +275,7 @@ export default function GuideOverlay() {
         /* Welcome modal (centered) */
         <div className="absolute inset-0 flex items-center justify-center" style={{ zIndex: 202 }}>
           <div className="bg-white rounded-2xl shadow-2xl p-6 sm:p-8 max-w-[calc(100vw-2rem)] sm:max-w-sm mx-4 text-center animate-in zoom-in">
-            <div className="text-5xl mb-4">🔍</div>
+            <div className="text-5xl mb-4" aria-hidden="true">🔍</div>
             <h2 className="text-lg sm:text-xl font-bold text-gray-800 mb-3">{step.title}</h2>
             <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-line mb-6">
               {step.content}

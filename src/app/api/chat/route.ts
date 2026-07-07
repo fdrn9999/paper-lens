@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkRateLimit, checkDailyQuota, checkGlobalQuota, getClientIp } from '@/lib/rateLimit';
-import { getGeminiApiKey } from '@/lib/env';
+import { getGeminiApiKey, getGeminiModel } from '@/lib/env';
 
 // ─── Prompt Injection Detection ─────────────────────────────────────────────
 
@@ -241,7 +241,7 @@ export async function POST(request: NextRequest) {
       });
 
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent`,
+        `https://generativelanguage.googleapis.com/v1beta/models/${getGeminiModel()}:generateContent`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },

@@ -13,3 +13,8 @@ function requireEnv(name: string): string {
 export function getGeminiApiKey(): string {
   return requireEnv('GEMINI_API_KEY');
 }
+
+/** Gemini model id used for translation and chat. Override with the GEMINI_MODEL env var. */
+export function getGeminiModel(): string {
+  return process.env.GEMINI_MODEL || 'gemini-3-flash-preview';
+}

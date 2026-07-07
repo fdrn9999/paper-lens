@@ -45,7 +45,7 @@ export default class ErrorBoundary extends React.Component<Props, State> {
 
       return (
         <div className="flex flex-col items-center justify-center p-8 text-center gap-4" role="alert">
-          <div className="text-4xl">⚠️</div>
+          <div className="text-4xl" aria-hidden="true">⚠️</div>
           <h2 className="text-lg font-semibold text-gray-800">
             {this.props.section
               ? `${this.props.section}에서 오류가 발생했습니다`

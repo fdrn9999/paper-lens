@@ -9,11 +9,16 @@ import {
   expandSelection, buildSelectionText, nextLevel,
   type SelItem, type SelectionRange, type SelectionLevel,
 } from '@/lib/textSelection';
+import { DEFAULT_SEARCH_HIGHLIGHT } from '@/lib/searchColors';
 // Pretext-inspired: canvas measureText for precise char-level positioning
 // (pretext's measurement module isn't exported, so we inline the technique)
 
 // Min viewport-top clearance (px) to place the floating button above the selection (≈ button height + gap)
 const FLOATING_BTN_ABOVE_THRESHOLD = 56;
+// Estimated width (px) of the floating [번역][확장] row, used to keep it inside the viewport.
+const FLOATING_ROW_EST_WIDTH = 120;
+// Horizontal margin (px) from the viewport edge for the floating row.
+const FLOATING_ROW_MARGIN = 10;
 
 /** Read a rendered text layer's spans into SelItem[] (DOM order = reading order). */
 function buildSelItems(textLayer: HTMLElement): SelItem[] {
@@ -477,7 +482,7 @@ export default memo(function PDFViewer() {
     if (pageResults.length === 0) return;
 
     const textLayer = textLayerDivRef.current;
-    const color_default = '#FFD500';
+    const color_default = DEFAULT_SEARCH_HIGHLIGHT;
     for (const result of pageResults) {
       const color = result.termColor || color_default;
 
@@ -631,7 +636,7 @@ export default memo(function PDFViewer() {
     const pageResults = results.filter((r) => r.page === pageNum);
     if (pageResults.length === 0) return;
 
-    const color_default = '#FFD500';
+    const color_default = DEFAULT_SEARCH_HIGHLIGHT;
     for (const result of pageResults) {
       const color = result.termColor || color_default;
 
@@ -781,7 +786,8 @@ export default memo(function PDFViewer() {
       bottom = Math.max(bottom, rc.bottom);
       left = Math.min(left, rc.left);
     }
-    const x = Math.min(Math.max(left, 10), window.innerWidth - 120);
+    const maxX = Math.max(FLOATING_ROW_MARGIN, window.innerWidth - FLOATING_ROW_EST_WIDTH);
+    const x = Math.min(Math.max(left, FLOATING_ROW_MARGIN), maxX);
     const useAbove = top > FLOATING_BTN_ABOVE_THRESHOLD;
     const y = useAbove ? top - 8 : bottom + 8;
     setFloatingBtn({ x, y, useAbove });
@@ -1389,7 +1395,7 @@ export default memo(function PDFViewer() {
   if (pdfLoadError) {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-4 p-8 text-center bg-gray-100">
-        <div className="text-5xl">⚠️</div>
+        <div className="text-5xl" aria-hidden="true">⚠️</div>
         <h2 className="text-lg font-semibold text-gray-800">PDF를 열 수 없습니다</h2>
         <p className="text-sm text-gray-500">파일이 손상되었거나 지원하지 않는 형식일 수 있습니다.</p>
         <button
@@ -1443,7 +1449,7 @@ export default memo(function PDFViewer() {
   // Pinned to the non-scrolling viewer frame so it stays visible while the PDF scrolls.
   const dragHintEl = showDragHint && (
     <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 rounded-full bg-purple-600/90 px-3 py-1.5 text-xs text-white shadow-md">
-      <span>💡 단어를 탭하면 바로 번역돼요</span>
+      <span><span aria-hidden="true">💡</span> 단어를 탭하면 바로 번역돼요</span>
       <button onClick={dismissDragHint} aria-label="힌트 닫기" className="ml-1 opacity-80 hover:opacity-100">✕</button>
     </div>
   );

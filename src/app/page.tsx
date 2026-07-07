@@ -184,6 +184,10 @@ export default function Home() {
           <a href="mailto:ckato9173@gmail.com"
              className="whitespace-nowrap hover:text-gray-600 transition-colors">ckato9173@gmail.com</a>
           <span className="text-gray-300">|</span>
+          <a href="/about"
+             className="whitespace-nowrap hover:text-gray-600 transition-colors">소개</a>
+          <a href="/guide"
+             className="whitespace-nowrap hover:text-gray-600 transition-colors">사용 가이드</a>
           <a href="/privacy"
              className="whitespace-nowrap hover:text-gray-600 transition-colors">개인정보처리방침</a>
         </footer>
@@ -219,7 +223,9 @@ export default function Home() {
           <button
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
             className="relative lg:hidden min-w-[44px] min-h-[44px] flex items-center justify-center rounded hover:bg-gray-100 transition-colors shrink-0"
-            aria-label="검색 결과 패널"
+            aria-label={isSidebarOpen ? '사이드바 닫기' : '사이드바 열기'}
+            aria-expanded={isSidebarOpen}
+            aria-controls="app-sidebar"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
@@ -325,6 +331,7 @@ export default function Home() {
 
         {/* Sidebar - drawer on mobile/tablet, fixed on PC */}
         <aside
+          id="app-sidebar"
           role="complementary"
           aria-label="검색 결과 사이드바"
           className={`
