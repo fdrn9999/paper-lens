@@ -2,6 +2,9 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import CookieConsent from '@/components/CookieConsent';
 
+// Runs before paint to set the theme class, preventing a flash of the wrong theme.
+const THEME_INIT = `(function(){try{var t=localStorage.getItem('paperlens-theme');var m=window.matchMedia('(prefers-color-scheme: dark)').matches;var d=t==='dark'||(t!=='light'&&m);document.documentElement.classList.toggle('dark',d);}catch(e){}})();`;
+
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
@@ -37,6 +40,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ko">
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT }} />
+      </head>
       <body className="antialiased overflow-x-hidden">
         {children}
         <CookieConsent />

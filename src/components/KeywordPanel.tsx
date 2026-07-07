@@ -94,7 +94,7 @@ const KeywordCard = memo(function KeywordCard({
       className={`w-full text-left rounded-lg border transition-all duration-150 overflow-hidden ${
         isActive
           ? 'ring-1 ring-offset-1 shadow-sm'
-          : 'bg-white hover:shadow-sm border-gray-200'
+          : 'bg-surface hover:shadow-sm border-gray-200'
       }`}
       style={isActive ? {
         borderColor: keyword.color,
@@ -305,7 +305,7 @@ export default memo(function KeywordPanel() {
 
       {/* Toolbar */}
       {keywords && keywords.length > 0 && (
-        <div className="flex items-center justify-between px-2.5 py-1.5 border-b bg-white shrink-0">
+        <div className="flex items-center justify-between px-2.5 py-1.5 border-b bg-surface shrink-0">
           <span className="text-[10px] text-gray-400">{keywords.length}개 키워드</span>
           <div className="flex items-center gap-1">
             <button

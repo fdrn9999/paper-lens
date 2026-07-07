@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 
 export default function AboutPage() {
   return (
-    <div className="min-h-[100dvh] bg-white max-w-[100vw] overflow-x-hidden">
+    <div className="min-h-[100dvh] bg-surface max-w-[100vw] overflow-x-hidden">
       <Script
         id="adsbygoogle-init"
         async
@@ -24,7 +24,7 @@ export default function AboutPage() {
       />
 
       <a href="#about-content" className="skip-to-content">본문으로 건너뛰기</a>
-      <header className="flex items-center justify-between px-4 sm:px-6 py-4 border-b bg-white">
+      <header className="flex items-center justify-between px-4 sm:px-6 py-4 border-b bg-surface">
         <Link href="/" className="flex items-center gap-2 hover:opacity-70 transition-opacity">
           <img src="/favicon.svg" alt="PaperLens 로고" className="w-7 h-7" />
           <h1 className="text-xl font-bold text-gray-800">PaperLens</h1>

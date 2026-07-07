@@ -1374,7 +1374,7 @@ export default memo(function PDFViewer() {
     return (
       <div className="h-full bg-gray-200 flex items-center justify-center">
         <div className="w-full max-w-2xl mx-4">
-          <div className="bg-white rounded-lg shadow-lg p-8 animate-pulse">
+          <div className="bg-surface rounded-lg shadow-lg p-8 animate-pulse">
             <div className="h-4 bg-gray-200 rounded w-3/4 mb-4" />
             <div className="h-4 bg-gray-200 rounded w-full mb-4" />
             <div className="h-4 bg-gray-200 rounded w-5/6 mb-4" />
@@ -1434,7 +1434,7 @@ export default memo(function PDFViewer() {
           onMouseDown={(e) => e.preventDefault()}
           onClick={handleExpand}
           aria-label="선택 범위 확장"
-          className="px-3 py-2.5 bg-white text-blue-700 text-sm rounded-lg shadow-lg border border-blue-200
+          className="px-3 py-2.5 bg-surface text-blue-700 text-sm rounded-lg shadow-lg border border-blue-200
                      hover:bg-blue-50 active:bg-blue-100 transition-colors flex items-center gap-1"
         >
           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1503,8 +1503,8 @@ export default memo(function PDFViewer() {
       <div ref={canvasContainerRef} />
       {floatingBtnEl}
       {renderingCanvas && (
-        <div className="absolute inset-0 flex items-center justify-center bg-white/50 z-20">
-          <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-lg shadow">
+        <div className="absolute inset-0 flex items-center justify-center bg-surface/50 z-20">
+          <div className="flex items-center gap-3 bg-surface px-4 py-2 rounded-lg shadow">
             <div className="animate-spin h-5 w-5 border-2 border-blue-500 border-t-transparent rounded-full" />
             <span className="text-sm text-gray-600">페이지 렌더링 중...</span>
           </div>

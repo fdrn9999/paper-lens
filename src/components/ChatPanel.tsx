@@ -290,7 +290,7 @@ export default memo(function ChatPanel() {
               className={`max-w-[85%] rounded-xl px-3 py-2 ${
                 msg.role === 'user'
                   ? 'bg-purple-500 text-white rounded-br-sm'
-                  : 'bg-white border border-gray-200 text-gray-800 rounded-bl-sm shadow-sm'
+                  : 'bg-surface border border-gray-200 text-gray-800 rounded-bl-sm shadow-sm'
               }`}
             >
               {msg.role === 'user' ? (
@@ -317,7 +317,7 @@ export default memo(function ChatPanel() {
         {/* Typing indicator */}
         {isChatLoading && (
           <div className="flex justify-start">
-            <div className="bg-white border border-gray-200 rounded-xl rounded-bl-sm shadow-sm">
+            <div className="bg-surface border border-gray-200 rounded-xl rounded-bl-sm shadow-sm">
               <TypingIndicator />
             </div>
           </div>
@@ -365,7 +365,7 @@ export default memo(function ChatPanel() {
       </div>
 
       {/* Input Area */}
-      <div className="shrink-0 border-t bg-white p-2.5">
+      <div className="shrink-0 border-t bg-surface p-2.5">
         <div className="flex items-end gap-2">
           <div className="flex-1 min-w-0 relative">
             <textarea

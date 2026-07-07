@@ -40,7 +40,7 @@ export default function ToastContainer() {
           aria-live={toast.type === 'error' ? 'assertive' : 'polite'}
           className={`px-4 py-3 rounded-lg shadow-lg text-sm font-medium text-white flex items-center
             max-sm:animate-slide-up sm:animate-slide-in
-            ${toast.type === 'error' ? 'bg-red-600' : toast.type === 'success' ? 'bg-green-600' : 'bg-gray-800'}`}
+            ${toast.type === 'error' ? 'bg-red-600' : toast.type === 'success' ? 'bg-green-600' : 'bg-zinc-800'}`}
         >
           <span className="flex-1">{toast.text}</span>
           <button

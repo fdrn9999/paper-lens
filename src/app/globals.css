@@ -2,6 +2,62 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================================
+   Design tokens (D-01). Light values equal Tailwind's original
+   palette, so light mode is unchanged; the `.dark` block swaps them
+   for the dark theme. Values are space-separated RGB channels for the
+   `rgb(var(--x) / <alpha-value>)` aliases in tailwind.config.ts.
+   ============================================================ */
+:root {
+  color-scheme: light;
+  --surface: 255 255 255;
+  --gray-50: 249 250 251;
+  --gray-100: 243 244 246;
+  --gray-200: 229 231 235;
+  --gray-300: 209 213 219;
+  --gray-400: 156 163 175;
+  --gray-500: 107 114 128;
+  --gray-600: 75 85 99;
+  --gray-700: 55 65 81;
+  --gray-800: 31 41 55;
+  --gray-900: 17 24 39;
+  --blue-50: 239 246 255;
+  --blue-100: 219 234 254;
+  --purple-50: 250 245 255;
+  --purple-100: 243 232 255;
+  --emerald-50: 236 253 245;
+  --emerald-100: 209 250 229;
+  --red-50: 254 242 242;
+  --red-100: 254 226 226;
+  --amber-50: 255 251 235;
+  --indigo-50: 238 242 255;
+}
+
+.dark {
+  color-scheme: dark;
+  --surface: 36 36 40;
+  --gray-50: 24 24 27;
+  --gray-100: 44 44 48;
+  --gray-200: 63 63 70;
+  --gray-300: 82 82 91;
+  --gray-400: 150 150 160;
+  --gray-500: 170 170 180;
+  --gray-600: 195 195 203;
+  --gray-700: 215 215 222;
+  --gray-800: 232 232 237;
+  --gray-900: 245 245 247;
+  --blue-50: 23 37 60;
+  --blue-100: 30 48 74;
+  --purple-50: 43 33 64;
+  --purple-100: 54 42 78;
+  --emerald-50: 20 48 40;
+  --emerald-100: 26 60 50;
+  --red-50: 56 28 30;
+  --red-100: 70 34 40;
+  --amber-50: 55 44 20;
+  --indigo-50: 38 38 72;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -187,6 +243,18 @@ input, textarea,
 
 ::-webkit-scrollbar-thumb:hover {
   background: #a1a1a1;
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: #1f1f22;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #45454b;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #5a5a62;
 }
 
 /* Mobile-friendly thin scrollbar */

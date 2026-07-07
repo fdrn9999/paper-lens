@@ -56,7 +56,7 @@ export default memo(function PageNavigator() {
   const isPageMode = viewerMode === 'page';
 
   return (
-    <nav className="flex items-center justify-between px-1 sm:px-4 md:px-6 py-2 pb-safe bg-white border-t text-xs sm:text-sm" aria-label="페이지 탐색">
+    <nav className="flex items-center justify-between px-1 sm:px-4 md:px-6 py-2 pb-safe bg-surface border-t text-xs sm:text-sm" aria-label="페이지 탐색">
       <div className="flex items-center gap-0.5 sm:gap-2 md:gap-3">
         {/* Mode toggle */}
         <button

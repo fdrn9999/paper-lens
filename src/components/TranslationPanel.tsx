@@ -37,7 +37,7 @@ export default memo(function TranslationPanel() {
   if (!pdfData || !showTranslation) return null;
 
   return (
-    <div className="bg-white border-t pb-safe shrink-0 max-h-[40dvh] overflow-auto">
+    <div className="bg-surface border-t pb-safe shrink-0 max-h-[40dvh] overflow-auto">
       <div className="px-3 sm:px-4 py-2 sm:py-3">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-3">

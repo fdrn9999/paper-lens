@@ -52,7 +52,7 @@ export default function UsageButton() {
         className={`w-11 h-11 sm:w-8 sm:h-8 flex items-center justify-center rounded-full border text-sm transition-colors
           ${isOpen
             ? 'bg-blue-600 text-white border-blue-600'
-            : `bg-white ${indicatorColor} border-gray-300 hover:bg-gray-50 hover:text-gray-700`}`}
+            : `bg-surface ${indicatorColor} border-gray-300 hover:bg-gray-50 hover:text-gray-700`}`}
         title="사용량"
         aria-label="사용량 확인"
         aria-haspopup="dialog"
@@ -68,7 +68,7 @@ export default function UsageButton() {
           ref={panelRef}
           role="dialog"
           aria-label="일일 사용량"
-          className="absolute right-0 top-full mt-2 w-64 max-w-[calc(100vw-1rem)] bg-white rounded-xl shadow-2xl border border-gray-200 z-50 overflow-hidden animate-in fade-in">
+          className="absolute right-0 top-full mt-2 w-64 max-w-[calc(100vw-1rem)] bg-surface rounded-xl shadow-2xl border border-gray-200 z-50 overflow-hidden animate-in fade-in">
           <div className="p-3 border-b bg-gradient-to-r from-blue-50 to-emerald-50">
             <h3 className="text-sm font-bold text-gray-800">일일 사용량</h3>
             <p className="text-[10px] text-gray-400 mt-0.5">매일 자정(한국시간) 초기화</p>

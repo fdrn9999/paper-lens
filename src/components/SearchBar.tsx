@@ -110,7 +110,7 @@ export default memo(function SearchBar() {
           {/* Input container with search term chips */}
           <div
             className="flex items-center flex-wrap gap-1 min-h-[40px] max-h-[80px] overflow-y-auto pl-9 pr-2 py-1 border border-gray-300 rounded-lg
-                       focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent bg-white cursor-text"
+                       focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent bg-surface cursor-text"
             onClick={() => inputRef.current?.focus()}
           >
             {/* Search term chips */}
@@ -124,7 +124,7 @@ export default memo(function SearchBar() {
                 <button
                   type="button"
                   onClick={(e) => { e.stopPropagation(); removeSearchTerm(st.id); }}
-                  className="ml-0.5 w-3.5 h-3.5 flex items-center justify-center rounded-full hover:bg-white/30 transition-colors"
+                  className="ml-0.5 w-3.5 h-3.5 flex items-center justify-center rounded-full hover:bg-surface/30 transition-colors"
                   aria-label={`${st.term} 검색어 삭제`}
                 >
                   <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -155,8 +155,8 @@ export default memo(function SearchBar() {
           <button
             type="button"
             onClick={() => { clearSearch(); lastSearchedRef.current = ''; }}
-            className="px-3 sm:px-4 py-2 text-sm bg-gray-500 text-white rounded-lg
-                       hover:bg-gray-600 active:bg-gray-700 transition-colors font-medium shrink-0 min-h-[44px]"
+            className="px-3 sm:px-4 py-2 text-sm bg-zinc-500 text-white rounded-lg
+                       hover:bg-zinc-600 active:bg-zinc-700 transition-colors font-medium shrink-0 min-h-[44px]"
             aria-label="검색 취소"
           >
             취소

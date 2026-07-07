@@ -16,6 +16,7 @@ import HelpButton from '@/components/HelpButton';
 import UsageButton from '@/components/UsageButton';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import ToastContainer from '@/components/Toast';
+import ThemeToggle from '@/components/ThemeToggle';
 
 const SIDEBAR_TABS = ['search', 'keywords', 'chat'] as const;
 
@@ -169,13 +170,14 @@ export default function Home() {
   if (!pdfData && !isLoadingPdf) {
     return (
       <div className="min-h-[100dvh] flex flex-col overflow-y-auto fixed inset-0 max-w-[100vw] overflow-x-hidden">
-        <header className="flex items-center justify-between px-4 sm:px-6 py-4 border-b bg-white">
+        <header className="flex items-center justify-between px-4 sm:px-6 py-4 border-b bg-surface">
           <div className="flex items-center gap-2">
             <img src="/favicon.svg" alt="PaperLens 로고" className="w-7 h-7" />
             <h1 className="text-xl font-bold text-gray-800">PaperLens</h1>
           </div>
           <p className="text-sm text-gray-500 hidden sm:block">AI 기반 논문 탐색 도구</p>
           <div className="flex items-center gap-2">
+            <ThemeToggle />
             <UsageButton />
             <HelpButton />
           </div>
@@ -230,7 +232,7 @@ export default function Home() {
       <ToastContainer />
 
       {/* Header */}
-      <header className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 sm:py-3 border-b bg-white shadow-sm z-40 shrink-0">
+      <header className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 sm:py-3 border-b bg-surface shadow-sm z-40 shrink-0">
         {/* Top row on mobile: hamburger + logo + close + help; on sm+ these flow inline */}
         <div className="flex items-center gap-1 sm:gap-2 sm:shrink-0 min-w-0">
           {/* Hamburger (mobile + tablet) */}
@@ -303,6 +305,7 @@ export default function Home() {
                 </svg>
               </button>
             )}
+            <ThemeToggle />
             <UsageButton />
             <HelpButton />
           </div>
@@ -328,6 +331,7 @@ export default function Home() {
               가이드
             </button>
           )}
+          <ThemeToggle />
           <UsageButton />
           <HelpButton />
         </div>
@@ -349,7 +353,7 @@ export default function Home() {
           role="complementary"
           aria-label="검색 결과 사이드바"
           className={`
-            absolute inset-y-0 left-0 z-[35] w-[90vw] max-w-[320px] bg-white border-r flex flex-col shrink-0
+            absolute inset-y-0 left-0 z-[35] w-[90vw] max-w-[320px] bg-surface border-r flex flex-col shrink-0
             transform transition-transform duration-200 ease-out
             lg:relative lg:translate-x-0 lg:w-72 lg:max-w-none
             ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}

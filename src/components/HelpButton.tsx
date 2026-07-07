@@ -20,7 +20,7 @@ export default function HelpButton() {
         className={`w-11 h-11 sm:w-8 sm:h-8 flex items-center justify-center rounded-full border text-sm font-bold transition-colors
           ${isOpen
             ? 'bg-blue-600 text-white border-blue-600'
-            : 'bg-white text-gray-500 border-gray-300 hover:bg-gray-50 hover:text-gray-700'}`}
+            : 'bg-surface text-gray-500 border-gray-300 hover:bg-gray-50 hover:text-gray-700'}`}
         title="도움말"
         aria-label="도움말 열기"
         aria-haspopup="dialog"
@@ -34,7 +34,7 @@ export default function HelpButton() {
           ref={panelRef}
           role="dialog"
           aria-label="사용 가이드"
-          className="absolute right-0 top-full mt-2 w-72 sm:w-80 max-w-[calc(100vw-1rem)] bg-white rounded-xl shadow-2xl border border-gray-200 z-50 overflow-hidden animate-in fade-in">
+          className="absolute right-0 top-full mt-2 w-72 sm:w-80 max-w-[calc(100vw-1rem)] bg-surface rounded-xl shadow-2xl border border-gray-200 z-50 overflow-hidden animate-in fade-in">
           <div className="p-4 border-b bg-gradient-to-r from-blue-50 to-purple-50">
             <h3 className="font-bold text-gray-800">PaperLens 사용 가이드</h3>
             <p className="text-xs text-gray-500 mt-1">논문을 탐색하는 새로운 방법</p>
