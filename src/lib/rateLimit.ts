@@ -1,4 +1,7 @@
 import { Redis } from '@upstash/redis';
+import { todayKST, secondsUntilMidnightKST } from './kstDate';
+
+export { getClientIp } from './clientIp';
 
 // ===== Upstash Redis client (lazy singleton) =====
 let _redis: Redis | null = null;
@@ -45,21 +48,7 @@ export async function checkRateLimit(key: string): Promise<{ allowed: boolean; r
 }
 
 // ===== Daily usage quota (character-based, resets at KST midnight / UTC+9) =====
-
-const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
-
-function todayKST(): string {
-    const kst = new Date(Date.now() + KST_OFFSET_MS);
-    return kst.toISOString().slice(0, 10); // "YYYY-MM-DD" in KST
-}
-
-function secondsUntilMidnightKST(): number {
-    const nowMs = Date.now();
-    const kst = new Date(nowMs + KST_OFFSET_MS);
-    const tomorrowKST = new Date(Date.UTC(kst.getUTCFullYear(), kst.getUTCMonth(), kst.getUTCDate() + 1));
-    // tomorrowKST is midnight KST expressed in UTC-shifted time; convert back
-    return Math.ceil((tomorrowKST.getTime() - KST_OFFSET_MS - nowMs) / 1000);
-}
+// KST date helpers live in ./kstDate so they can be unit-tested deterministically.
 
 /** Per-IP daily character limits */
 export const DAILY_CHAR_LIMITS: Record<string, number> = {
@@ -87,7 +76,11 @@ export async function checkGlobalQuota(
         const today = todayKST();
         const redisKey = `gq:${endpoint}:${today}`;
 
-      // Increment first to avoid race conditions
+      // Increment first, then roll back if over the limit. B-07 accepted tolerance:
+      // two requests near the cap can both incr, both see over-limit, and both decr,
+      // so `usedChars` may transiently over-report and a request that would have fit
+      // can be denied. This self-heals on the next call; we accept it rather than move
+      // to a Lua script, which would gate all AI on an unverified atomic path.
       const newTotal = await redis.incrby(redisKey, charCount);
         const ttl = await redis.ttl(redisKey);
         if (ttl < 0) {
@@ -133,7 +126,11 @@ export async function checkDailyQuota(
         const today = todayKST();
         const redisKey = `dq:${endpoint}:${ip}:${today}`;
 
-      // Increment first to avoid race conditions
+      // Increment first, then roll back if over the limit. B-07 accepted tolerance:
+      // two requests near the cap can both incr, both see over-limit, and both decr,
+      // so `usedChars` may transiently over-report and a request that would have fit
+      // can be denied. This self-heals on the next call; we accept it rather than move
+      // to a Lua script, which would gate all AI on an unverified atomic path.
       const newTotal = await redis.incrby(redisKey, charCount);
         const ttl = await redis.ttl(redisKey);
         if (ttl < 0) {
@@ -163,17 +160,3 @@ export async function checkDailyQuota(
   }
 }
 
-/**
- * Extracts client IP from request headers.
- * Uses the rightmost IP in x-forwarded-for (appended by the nearest trusted proxy, e.g. Vercel).
- * The client-controllable x-real-ip is NOT used as a fallback — trusting it would let an attacker
- * mint a fresh per-IP quota / rate-limit bucket per request by spoofing the header.
- */
-export function getClientIp(request: Request): string {
-    const forwarded = request.headers.get('x-forwarded-for');
-    if (forwarded) {
-          const ips = forwarded.split(',').map((ip) => ip.trim()).filter(Boolean);
-          if (ips.length > 0) return ips[ips.length - 1];
-    }
-    return 'unknown';
-}

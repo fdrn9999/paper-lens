@@ -7,7 +7,7 @@
         "build": "next build",
         "start": "next start",
         "lint": "next lint",
-        "test": "node --test src/lib/textSelection.test.ts src/lib/searchEngine.test.ts"
+        "test": "node --test src/lib/textSelection.test.ts src/lib/searchEngine.test.ts src/lib/injectionFilter.test.ts src/lib/clientIp.test.ts src/lib/kstDate.test.ts"
     },
     "dependencies": {
         "@chenglou/pretext": "^0.0.3",

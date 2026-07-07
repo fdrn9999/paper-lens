@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkRateLimit, checkDailyQuota, checkGlobalQuota, getClientIp } from '@/lib/rateLimit';
 import { getGeminiApiKey, getGeminiModel } from '@/lib/env';
+import { fetchGeminiWithRetry } from '@/lib/geminiFetch';
+
+// Overall server-side deadline for the Gemini call, kept under the client's 30s timeout.
+const TRANSLATE_GEMINI_TIMEOUT_MS = 25000;
 
 export async function POST(request: NextRequest) {
   try {
@@ -95,31 +99,41 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${getGeminiModel()}:generateContent`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [
-                {
-                  text: `You are a professional academic translator. Translate the following English text into Korean. Maintain academic tone and technical terms where appropriate. Only return the translated text, nothing else.
+    let response: Response;
+    try {
+      response = await fetchGeminiWithRetry(
+        `https://generativelanguage.googleapis.com/v1beta/models/${getGeminiModel()}:generateContent`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+          body: JSON.stringify({
+            contents: [
+              {
+                parts: [
+                  {
+                    text: `You are a professional academic translator. Translate the following English text into Korean. Maintain academic tone and technical terms where appropriate. Only return the translated text, nothing else.
 
 Text to translate:
 ${trimmed}`,
-                },
-              ],
+                  },
+                ],
+              },
+            ],
+            generationConfig: {
+              temperature: 0.3,
+              maxOutputTokens: 2048,
             },
-          ],
-          generationConfig: {
-            temperature: 0.3,
-            maxOutputTokens: 2048,
-          },
-        }),
-      }
-    );
+          }),
+        },
+        { timeoutMs: TRANSLATE_GEMINI_TIMEOUT_MS }
+      );
+    } catch (err) {
+      console.error('Gemini translate request failed:', err);
+      return NextResponse.json(
+        { error: '번역 응답 시간이 초과되었습니다. 잠시 후 다시 시도해주세요.' },
+        { status: 504 }
+      );
+    }
 
     if (!response.ok) {
       await response.json().catch(() => null);

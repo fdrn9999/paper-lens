@@ -40,9 +40,17 @@ declare global {
 
 let pdfjsPromise: Promise<PdfjsLib> | null = null;
 
+const PDFJS_VERSION = '3.11.174';
+const PDFJS_BASE = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDFJS_VERSION}`;
+// SRI hash for pdf.min.js, verified by hashing the cdnjs file directly (sha512).
+// This pins the main script — the code that runs in the page context — against a
+// CDN compromise. The worker is loaded by pdf.js via GlobalWorkerOptions.workerSrc
+// (a Worker URL), which cannot carry an integrity attribute, so it is not pinned here.
+const PDFJS_MAIN_SRI = 'sha512-q+4liFwdPC/bNdhUpZx6aXDx/h77yEQtn4I1slHydcbZK34nLaR3cAeYSJshoxIOq3mjEf7xJE8YWIUHMn+oCQ==';
+
 /**
  * Load pdfjs-dist from CDN to avoid webpack chunking issues.
- * Uses v3.11.174 UMD build which exposes window.pdfjsLib.
+ * Uses the v3.11.174 UMD build which exposes window.pdfjsLib.
  */
 export function loadPdfjs(): Promise<PdfjsLib> {
   if (pdfjsPromise) return pdfjsPromise;
@@ -54,12 +62,13 @@ export function loadPdfjs(): Promise<PdfjsLib> {
     }
 
     const script = document.createElement('script');
-    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+    script.src = `${PDFJS_BASE}/pdf.min.js`;
+    script.integrity = PDFJS_MAIN_SRI;
+    script.crossOrigin = 'anonymous';
     script.onload = () => {
       const lib = window.pdfjsLib;
       if (lib) {
-        lib.GlobalWorkerOptions.workerSrc =
-          'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        lib.GlobalWorkerOptions.workerSrc = `${PDFJS_BASE}/pdf.worker.min.js`;
         resolve(lib);
       } else {
         pdfjsPromise = null;

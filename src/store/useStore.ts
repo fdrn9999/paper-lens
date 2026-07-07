@@ -1,14 +1,21 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import { PageTextContent, SearchResult, TranslationErrorCode, ExtractedKeyword, KeywordAlgorithm, SearchTerm, ChatMessage } from '@/lib/types';
 import { searchDocument } from '@/lib/searchEngine';
 import { SEARCH_TERM_COLORS } from '@/lib/searchColors';
+import { todayKST } from '@/lib/kstDate';
+import { safeLocalStorage } from '@/lib/safeStorage';
 
 /** Show toast notification (lazy import to avoid circular deps) */
 function showToastSafe(text: string, type: 'success' | 'error' | 'info' = 'info') {
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('paperlens-toast', { detail: { text, type } }));
   }
+}
+
+/** True when the browser reports it is offline (best-effort; navigator.onLine can lag). */
+function isOffline(): boolean {
+  return typeof navigator !== 'undefined' && 'onLine' in navigator && !navigator.onLine;
 }
 
 /** Detect if text is predominantly Korean (>30% Korean characters). */
@@ -47,9 +54,16 @@ const API_TIMEOUT_MS = 60000; // 60s for chat (longer than search)
 
 /** Return KST date string (YYYY-MM-DD) — matches server-side reset at KST midnight */
 function getKSTDateString(): string {
-  const kst = new Date(Date.now() + 9 * 60 * 60 * 1000);
-  return kst.toISOString().slice(0, 10);
+  return todayKST();
 }
+
+/** Shape persisted to localStorage (see `partialize`/`migrate` in the store config). */
+type PersistedState = {
+  hasSeenTutorial: boolean;
+  dailyUsage: { translate: number; chat: number; date: string };
+  viewerMode: 'scroll' | 'page';
+  sidebarTab: 'search' | 'keywords' | 'chat';
+};
 
 /** Wrap fetch with a per-request timeout. */
 async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs = API_TIMEOUT_MS): Promise<Response> {
@@ -300,6 +314,9 @@ const useStore = create<AppState>()(
       setIsExtracting: (v) => {
         set({ isExtracting: v });
         if (!v) {
+          // Extraction finished: run one authoritative search and cancel any pending
+          // progressive-search timer so we don't search twice within 500ms (B-06).
+          if (progressiveSearchTimer) { clearTimeout(progressiveSearchTimer); progressiveSearchTimer = null; }
           const { searchQuery, searchTerms } = get();
           if (searchQuery.trim() || searchTerms.length > 0) {
             setTimeout(() => get().search(), 0);
@@ -493,6 +510,12 @@ const useStore = create<AppState>()(
           return;
         }
 
+        if (isOffline()) {
+          set({ selectedText: text, showTranslation: true, translationResult: '', isTranslating: false, isTranslationError: true, translationErrorCode: 'NETWORK_ERROR', translationErrorDetail: '' });
+          showToastSafe('오프라인 상태입니다. 인터넷 연결을 확인해주세요.', 'error');
+          return;
+        }
+
         if (translateAbortController) translateAbortController.abort();
         const controller = new AbortController();
         translateAbortController = controller;
@@ -545,6 +568,11 @@ const useStore = create<AppState>()(
         const chatQ = get().chatQuota;
         if (chatQ && chatQ.usedPercent >= 100) {
           showToastSafe('오늘의 AI 사용량을 초과했습니다.', 'error');
+          return;
+        }
+
+        if (isOffline()) {
+          showToastSafe('오프라인 상태입니다. 인터넷 연결을 확인해주세요.', 'error');
           return;
         }
 
@@ -792,12 +820,39 @@ const useStore = create<AppState>()(
     }),
     {
       name: 'paperlens-storage',
+      // Bump `version` whenever the persisted shape below changes in an incompatible
+      // way, and extend `migrate` to upgrade older payloads. Writes go through
+      // safeLocalStorage so a full/blocked quota can't crash a state update (B-03).
+      version: 1,
+      storage: createJSONStorage(() => safeLocalStorage),
       partialize: (state: AppState) => ({
         hasSeenTutorial: state.hasSeenTutorial,
         dailyUsage: state.dailyUsage,
         viewerMode: state.viewerMode,
         sidebarTab: state.sidebarTab,
       }),
+      migrate: (persisted: unknown): PersistedState => {
+        // v0 (unversioned) → v1: sanitize each field, dropping anything unexpected so a
+        // stale or corrupt payload rehydrates to valid values instead of poisoning state.
+        const p = (persisted ?? {}) as Record<string, unknown>;
+
+        const du = p.dailyUsage as Record<string, unknown> | undefined;
+        const dailyUsage = du
+          && typeof du.translate === 'number'
+          && typeof du.chat === 'number'
+          && typeof du.date === 'string'
+          ? { translate: du.translate, chat: du.chat, date: du.date }
+          : { translate: 0, chat: 0, date: '' };
+
+        return {
+          hasSeenTutorial: typeof p.hasSeenTutorial === 'boolean' ? p.hasSeenTutorial : false,
+          dailyUsage,
+          viewerMode: p.viewerMode === 'scroll' || p.viewerMode === 'page' ? p.viewerMode : 'scroll',
+          sidebarTab: p.sidebarTab === 'search' || p.sidebarTab === 'keywords' || p.sidebarTab === 'chat'
+            ? p.sidebarTab
+            : 'search',
+        };
+      },
     }
   )
 );
