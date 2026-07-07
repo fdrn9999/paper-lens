@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { foldText, stem, levenshtein, buildPageData, matchTokens, foldKey, mergeTiers, searchDocument } from './searchEngine.ts';
+import { foldText, stem, levenshtein, buildPageData, matchTokens, foldKey, mergeTiers, searchDocument, searchAllTerms } from './searchEngine.ts';
 import type { PageTextContent } from './types.ts';
 
 test('foldText strips diacritics and lowercases', () => {
@@ -75,6 +75,34 @@ test('buildPageData concatenates items, tokenizes, and memoizes by identity', ()
   assert.deepEqual(a[0].tokens.map((t) => t.token), ['Neural', 'networks', 'learn', 'fast']);
   // same array reference returns the same cached object
   assert.equal(buildPageData(pages), a);
+});
+
+test('buildPageData reuses per-page data across different array wrappers (P-01)', () => {
+  const p1 = page(1, 'alpha beta');
+  const p2 = page(2, 'gamma delta');
+  const first = buildPageData([p1, p2]);
+  // A new array wrapper sharing the same page objects (as progressive extraction emits)
+  // must reuse the already-tokenized PageData instead of rebuilding it.
+  const second = buildPageData([p1, p2, page(3, 'epsilon zeta')]);
+  assert.equal(second[0], first[0]);
+  assert.equal(second[1], first[1]);
+  assert.equal(second.length, 3);
+});
+
+test('searchAllTerms tags matches and returns them sorted by page', () => {
+  const pages = [page(2, 'network design'), page(1, 'neural network')];
+  const res = searchAllTerms(pages, [{ term: 'network', color: '#111', label: 'network' }], false);
+  assert.ok(res.length >= 2);
+  assert.ok(res.every((r, i) => i === 0 || res[i - 1].page <= r.page)); // sorted by page
+  assert.equal(res[0].termColor, '#111');
+  assert.equal(res[0].termLabel, 'network');
+});
+
+test('searchAllTerms de-duplicates identical matches across the result set', () => {
+  const pages = [page(1, 'model model model')];
+  const res = searchAllTerms(pages, [{ term: 'model', color: '#222', label: 'model' }], false);
+  const keys = res.map((r) => `${r.id}-${r.termLabel}`);
+  assert.equal(new Set(keys).size, keys.length); // no duplicate id+label pairs
 });
 
 test('matchTokens matches via a key transform (identity = exact tokens)', () => {

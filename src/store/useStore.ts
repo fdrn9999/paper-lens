@@ -1,7 +1,8 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { PageTextContent, SearchResult, TranslationErrorCode, ExtractedKeyword, KeywordAlgorithm, SearchTerm, ChatMessage } from '@/lib/types';
-import { searchDocument } from '@/lib/searchEngine';
+import type { SearchTermSpec } from '@/lib/searchEngine';
+import { runSearchTerms } from '@/lib/searchRunner';
 import { SEARCH_TERM_COLORS } from '@/lib/searchColors';
 import { todayKST } from '@/lib/kstDate';
 import { safeLocalStorage } from '@/lib/safeStorage';
@@ -32,6 +33,9 @@ let chatAbortController: AbortController | null = null;
 let summaryAbortController: AbortController | null = null;
 const quotaTimerMap: Record<string, ReturnType<typeof setTimeout>> = {};
 let progressiveSearchTimer: ReturnType<typeof setTimeout> | null = null;
+// Monotonic search id: async (worker) searches check this on completion and drop
+// their results if a newer search — or a clear — has since superseded them.
+let searchSeq = 0;
 
 function clearQuotaTimers() {
   for (const key of Object.keys(quotaTimerMap)) {
@@ -337,7 +341,7 @@ const useStore = create<AppState>()(
         }
       },
 
-      search: () => {
+      search: async () => {
         const { pageTextContents, searchQuery, caseSensitive, searchTerms } = get();
         const terms = searchTerms.length > 0
           ? searchTerms
@@ -346,43 +350,33 @@ const useStore = create<AppState>()(
             : [];
 
         if (terms.length === 0) {
-          set({ searchResults: [], currentResultIndex: -1 });
+          searchSeq++; // supersede any in-flight search
+          set({ searchResults: [], currentResultIndex: -1, isSearching: false });
           return;
         }
 
         set({ isSearching: true });
-        setTimeout(() => {
-          const allResults: SearchResult[] = [];
-          for (const st of terms) {
-            const results = searchDocument(pageTextContents, st.term, caseSensitive);
-            for (const r of results) {
-              r.termColor = st.color;
-              r.termLabel = st.term;
-            }
-            allResults.push(...results);
-          }
-          allResults.sort((a, b) => a.page - b.page || a.itemIndex - b.itemIndex);
-          const seen = new Set<string>();
-          const deduped = allResults.filter((r) => {
-            const key = `${r.id}-${r.termLabel}`;
-            if (seen.has(key)) return false;
-            seen.add(key);
-            return true;
-          });
+        const mySeq = ++searchSeq;
+        const specs: SearchTermSpec[] = terms.map((t) => ({ term: t.term, color: t.color, label: t.term }));
 
-          const termsKey = terms.map((t) => t.term).join(',');
-          const prevIndex = get().currentResultIndex;
-          const prevResults = get().searchResults;
-          const isReSearch = prevResults.length > 0 && termsKey === get().lastSearchedQuery;
-          const newIndex = isReSearch && prevIndex >= 0 && prevIndex < deduped.length
-            ? prevIndex
-            : deduped.length > 0 ? 0 : -1;
-          set({ searchResults: deduped, currentResultIndex: newIndex, lastSearchedQuery: termsKey, isSearching: false });
-          if (deduped.length > 0 && !isReSearch) {
-            set({ currentPage: deduped[0].page, sidebarTab: 'search' });
-            if (typeof window !== 'undefined' && window.innerWidth < 1024) set({ isSidebarOpen: true });
-          }
-        }, 0);
+        // Runs off the main thread when a Web Worker is available, else synchronously.
+        const deduped = await runSearchTerms(pageTextContents, specs, caseSensitive);
+
+        // A newer search (or a clear) superseded this one → drop stale results.
+        if (mySeq !== searchSeq) return;
+
+        const termsKey = terms.map((t) => t.term).join(',');
+        const prevIndex = get().currentResultIndex;
+        const prevResults = get().searchResults;
+        const isReSearch = prevResults.length > 0 && termsKey === get().lastSearchedQuery;
+        const newIndex = isReSearch && prevIndex >= 0 && prevIndex < deduped.length
+          ? prevIndex
+          : deduped.length > 0 ? 0 : -1;
+        set({ searchResults: deduped, currentResultIndex: newIndex, lastSearchedQuery: termsKey, isSearching: false });
+        if (deduped.length > 0 && !isReSearch) {
+          set({ currentPage: deduped[0].page, sidebarTab: 'search' });
+          if (typeof window !== 'undefined' && window.innerWidth < 1024) set({ isSidebarOpen: true });
+        }
       },
 
       clearSearch: () => {

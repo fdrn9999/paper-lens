@@ -80,18 +80,33 @@ export interface PageData {
   tokens: TokenWithPosition[];
 }
 
-const pageDataCache = new WeakMap<PageTextContent[], PageData[]>();
+// Array-level cache: a stable pageContents reference returns the same PageData[].
+const pageArrayCache = new WeakMap<PageTextContent[], PageData[]>();
+// Page-level cache: individual page objects are stable across the `[...allPages]`
+// spreads emitted during progressive extraction, so per-page memoization lets a
+// growing document reuse already-tokenized pages instead of re-tokenizing all of
+// them on every 5-page batch (P-01).
+const pageDataCache = new WeakMap<PageTextContent, PageData>();
 
-/** Build (and memoize per array identity) the concat text, offsets, and tokens per page. WeakMap is keyed by array identity and only hits when the caller passes a STABLE pageContents reference across calls. */
+/**
+ * Build (and memoize) the concat text, offsets, and tokens per page.
+ * Hits the array cache when given a stable pageContents reference; otherwise
+ * rebuilds only the array wrapper and reuses each page's cached PageData.
+ */
 export function buildPageData(pageContents: PageTextContent[]): PageData[] {
-  const cached = pageDataCache.get(pageContents);
-  if (cached) return cached;
+  const cachedArray = pageArrayCache.get(pageContents);
+  if (cachedArray) return cachedArray;
   const data: PageData[] = [];
   for (const pg of pageContents) {
-    const { text: concat, offsets } = buildConcatText(pg.items, ' ');
-    data.push({ page: pg.page, concat, offsets, tokens: tokenize(concat) });
+    let pd = pageDataCache.get(pg);
+    if (!pd) {
+      const { text: concat, offsets } = buildConcatText(pg.items, ' ');
+      pd = { page: pg.page, concat, offsets, tokens: tokenize(concat) };
+      pageDataCache.set(pg, pd);
+    }
+    data.push(pd);
   }
-  pageDataCache.set(pageContents, data);
+  pageArrayCache.set(pageContents, data);
   return data;
 }
 
@@ -622,4 +637,41 @@ export function searchDocument(
   const tier3 = qTokens.length === 1 ? fuzzySearch(pageData, foldQ[0], caseSensitive) : [];
 
   return mergeTiers([tier0, tier1, tier2, tier3]);
+}
+
+/** A search term with the color + label to tag its matches with. */
+export interface SearchTermSpec {
+  term: string;
+  color: string;
+  label: string;
+}
+
+/**
+ * Run every term against the document and return the combined, sorted, de-duplicated
+ * results (matches the ordering/dedup the store applied inline). This is the single
+ * source of truth shared by the Web Worker and the synchronous fallback so both paths
+ * produce identical results by construction (P-02).
+ */
+export function searchAllTerms(
+  pageContents: PageTextContent[],
+  terms: SearchTermSpec[],
+  caseSensitive: boolean,
+): SearchResult[] {
+  const all: SearchResult[] = [];
+  for (const st of terms) {
+    const results = searchDocument(pageContents, st.term, caseSensitive);
+    for (const r of results) {
+      r.termColor = st.color;
+      r.termLabel = st.label;
+    }
+    all.push(...results);
+  }
+  all.sort((a, b) => a.page - b.page || a.itemIndex - b.itemIndex);
+  const seen = new Set<string>();
+  return all.filter((r) => {
+    const key = `${r.id}-${r.termLabel}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
